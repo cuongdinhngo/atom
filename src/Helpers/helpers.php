@@ -2,7 +2,7 @@
 
 define('DOC_ROOT', $_SERVER["DOCUMENT_ROOT"]);
 define('CONFIG_PATH', DOC_ROOT.'/../config/');
-define('ROUTE_PATH', DOC_ROOT.'/../app/Http/Routes/');
+define('ROUTE_PATH', DOC_ROOT.'/../app/Routes/');
 define('CONTROLLER_PATH', DOC_ROOT.'/../app/Controllers/');
 define('VIEW_PATH', DOC_ROOT.'/../resources/views/');
 define('STORAGE_PATH', DOC_ROOT.'/../storage/');
@@ -67,7 +67,7 @@ if (!function_exists('searchFile')) {
 	}
 }
 
-if (!function_exists('obtain')) {
+if (!function_exists('obtainValue')) {
 
 	function obtainValue(string $file, array $keys)
 	{
