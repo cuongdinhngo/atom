@@ -22,7 +22,10 @@
   "autoload": {
     "psr-4": {
       "Atom\\": "src/"
-    }
+    },
+    "files": [
+      "src/Helpers/helpers.php"
+    ]
   },
   "autoload-dev": {
     "psr-4": {
