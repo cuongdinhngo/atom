@@ -34,14 +34,14 @@ class Response
 	 * @return json
 	 */
 	public static function toJson($values, $code = null, $option = JSON_UNESCAPED_UNICODE)
-	{
-		$json = json_encode($values, $option);
+    {
+        $json = json_encode($values, $option);
         if ($errno = json_last_error()) {
             static::handleJsonError($errno);
         }
         static::responseCode($code);
         return $json;
-	}
+    }
 
 	/**
 	 * Redirect
@@ -50,17 +50,17 @@ class Response
 	 * @return void
 	 */
 	public static function redirect(string $uri, array $data = [])
-	{
-		if (!is_array($data)) {
-			throw new ResponseException(ResponseException::ERR_MSG_INVALID_ARGUMENTS);
-		}
-		$server = Globals::server();
-		$params = empty($data) ? '': '?'.http_build_query($data);
-		$uri = rtrim(dirname($server["PHP_SELF"]), '/\\') . $uri;
-		$url = $server['REQUEST_SCHEME'] . '://' . $server['HTTP_HOST'] . $uri . $params;
-		header("Location: {$url}");
-		exit();
-	}
+    {
+        if (!is_array($data)) {
+            throw new ResponseException(ResponseException::ERR_MSG_INVALID_ARGUMENTS);
+        }
+        $server = Globals::server();
+        $params = empty($data) ? '': '?'.http_build_query($data);
+        $uri = rtrim(dirname($server["PHP_SELF"]), '/\\') . $uri;
+        $url = $server['REQUEST_SCHEME'] . '://' . $server['HTTP_HOST'] . $uri . $params;
+        header("Location: {$url}");
+        exit();
+    }
 
 	/**
 	 * Set Http Response Code
@@ -70,9 +70,9 @@ class Response
     public static function responseCode($code = null)
     {
         if ($code !== null) {
-        	$message = static::$phrases[$code];
+            $message = static::$phrases[$code];
             if (false === $message) {
-            	exit('Unknown http status code "' . htmlentities($code) . '"');
+                exit('Unknown http status code "' . htmlentities($code) . '"');
             }
 
             $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.0');
