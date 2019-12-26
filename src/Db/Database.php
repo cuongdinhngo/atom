@@ -4,14 +4,15 @@ namespace Atom\Db;
 
 use Atom\Db\Driver;
 use Atom\Db\Exception\DatabaseException;
+use Atom\Db\DatabaseInterface;
 
-class Database
+abstract class Database implements DatabaseInterface
 {
-	protected $db;
-	protected $table;
-	protected $result;
-	protected $query;
-	protected $selectCols;
+    protected $db;
+    protected $table;
+    protected $result;
+    protected $query;
+    protected $selectCols;
     protected $limit;
     protected $offset;
     protected $fillable;
@@ -39,10 +40,10 @@ class Database
     /**
      * Database construct
      */
-	public function __construct()
-	{
-		$this->db = (new Driver())->createConnection();
-	}
+    public function __construct()
+    {
+        $this->db = (new Driver())->createConnection();
+    }
 
     /**
      * Prepare SQL query
@@ -100,7 +101,7 @@ class Database
      */
     public function truncate()
     {
-        if (!$this->checkTable()) {
+        if (false === $this->checkTable()) {
             return false;
         }
         $sql = $this->buildQuery(self::QUERY_TRUNCATE);
@@ -113,7 +114,7 @@ class Database
      */
     public function delete()
     {
-        if (!$this->checkTable()) {
+        if (false === $this->checkTable()) {
             return false;
         }
         $sql = $this->buildQuery(self::QUERY_DELETE);
@@ -127,7 +128,7 @@ class Database
      */
     public function update(array $data)
     {
-        if (!$this->checkTable()) {
+        if (false === $this->checkTable()) {
             return false;
         }
 
@@ -161,7 +162,7 @@ class Database
      */
     public function insert(array $request)
     {
-        if (!$this->checkTable()) {
+        if (false === $this->checkTable()) {
             return false;
         }
 
@@ -180,7 +181,7 @@ class Database
      */
     public function insertMany(array $requests)
     {
-        if (!$this->checkTable()) {
+        if (false === $this->checkTable()) {
             return false;
         }
 
@@ -211,7 +212,7 @@ class Database
      */
     public function insertDuplicate(array $request)
     {
-        if (!$this->checkTable()) {
+        if (false === $this->checkTable()) {
             return false;
         }
 
@@ -605,13 +606,13 @@ class Database
      */
     public function get($limit = null)
     {
-        if (!$this->checkTable()) {
+        if (false === $this->checkTable()) {
             return false;
         }
 
         $this->limit = $limit ?? '' ;
-    	$sql = $this->buildQuery(self::QUERY_SELECT);
-    	$result = $this->query($sql);
+        $sql = $this->buildQuery(self::QUERY_SELECT);
+        $result = $this->query($sql);
         return $this->resultToArray($result);
     }
 
@@ -684,6 +685,9 @@ class Database
         return boolval($this->fillable);
     }
 
+    /**
+     * Destruct
+     */
     public function __destruct()
     {
         unset($this->db);
