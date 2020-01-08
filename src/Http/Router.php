@@ -3,15 +3,15 @@
 namespace Atom\Http;
 
 use Atom\Http\Globals;
-use Atom\Http\Exception\RouteException;
+use Atom\Http\Exception\RouterException;
 
-class Route
+class Router
 {
     public $path;
     public $method;
 
     /**
-     * Route construct
+     * Router construct
      */
     public function __construct()
     {
@@ -26,18 +26,16 @@ class Route
     public function dispatchController()
     {
         $call = $this->dispatchRoute();
-        if (is_null($call)) {
-            throw new \Exception(RouteException::ERR_MSG_INVALID_ROUTE);
+        if (empty($call)) {
+            throw new RouterException(RouterException::ERR_MSG_INVALID_ROUTE);
         }
 
-        if (isset($call['controller']) && !empty($call['controller'])) {
-            $class = $call['controller'];
+        $actions = array_column($call, strtolower($this->method));
+        list($class, $function) = explode('@', $actions[0]);
+        if (empty($class)) {
+            throw new RouterException(RouterException::ERR_MSG_INVALID_ROUTE);
         }
 
-        if (isset($call['actions']) && !empty($call['actions'])) {
-            $actions = array_column($call['actions'], strtolower($this->method));
-            list($class, $function) = explode('@', $actions[0]);
-        }
         return [$class, $function];
     }
 
