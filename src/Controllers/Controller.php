@@ -10,8 +10,12 @@ class Controller
 {
     use Validator;
 
-	const PREFIX = 'App\\Controllers\\';
+    const PREFIX = 'App\\Controllers\\';
 
+    /**
+     * Request
+     * @var $request
+     */
     protected $request;
 
     /**

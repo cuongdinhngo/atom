@@ -14,25 +14,25 @@ if (!function_exists('config')) {
      * @param  string $params
      * @return mixed
      */
-	function config($params = null) 
-	{
-		if (is_null($params)) {
-			return;
-		}
+    function config($params = null)
+    {
+        if (is_null($params)) {
+            return;
+        }
 
-		$keys = explode('.', $params);
-		$fileName = array_shift($keys);
-		$searchFile = searchFile(CONFIG_PATH . $fileName . '.*');
+        $keys = explode('.', $params);
+        $fileName = array_shift($keys);
+        $searchFile = searchFile(CONFIG_PATH . $fileName . '.*');
 
         if (strpos($searchFile, '.ini')) {
-        	$envs = parse_ini_file($searchFile, false);
+            $envs = parse_ini_file($searchFile, false);
             foreach ($envs as $env => $value) {
                 putenv("{$env}={$value}");
             }
         } else {
-        	return obtainValue($searchFile, $keys);	
+            return obtainValue($searchFile, $keys);
         }
-	}
+    }
 }
 
 if (!function_exists('route')) {
@@ -41,46 +41,46 @@ if (!function_exists('route')) {
      * @param  string $params
      * @return mixed
      */
-	function route($params = null)
-	{
-		if (is_null($params)) {
-			return;
-		}
+    function route($params = null)
+    {
+        if (is_null($params)) {
+            return;
+        }
 
-		$keys = explode('.', $params);
-		$fileName = array_shift($keys);
-		$filePath = ROUTE_PATH . $fileName . '.php';
+        $keys = explode('.', $params);
+        $fileName = array_shift($keys);
+        $filePath = ROUTE_PATH . $fileName . '.php';
 
         return obtainValue($filePath, $keys);
-	}
+    }
 }
 
 if (!function_exists('searchFile')) {
 
-	function searchFile(string $path)
-	{
-		$searchFile = glob($path);
-		if (empty($searchFile)) {
+    function searchFile(string $path)
+    {
+        $searchFile = glob($path);
+        if (empty($searchFile)) {
             throw new \Exception('File Is Not Existed');
         }
-		return $searchFile[0];
-	}
+        return $searchFile[0];
+    }
 }
 
 if (!function_exists('obtainValue')) {
 
-	function obtainValue(string $file, array $keys)
-	{
+    function obtainValue(string $file, array $keys)
+    {
         if (!file_exists($file)) {
             throw new \Exception('File Is Not Existed');
         }
 
-		$data = require_once($file);
-    	foreach ($keys as $key) {
-    		$data = $data[$key];
-    	}
-    	return $data;
-	}
+        $data = require_once($file);
+        foreach ($keys as $key) {
+            $data = $data[$key];
+        }
+        return $data;
+    }
 }
 
 if (!function_exists('getHeaders'))
@@ -92,14 +92,14 @@ if (!function_exists('getHeaders'))
     function getHeaders()
     {
         $headers = [];
-       	foreach ($_SERVER as $name => $value)
-       	{
-           	if (substr($name, 0, 5) == 'HTTP_')
-           	{
-            	$headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
-           	}
-       	}
-       	return $headers;
+        foreach ($_SERVER as $name => $value)
+        {
+            if (substr($name, 0, 5) == 'HTTP_')
+            {
+                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+            }
+        }
+        return $headers;
     }
 }
 
@@ -182,5 +182,23 @@ if (!function_exists('today'))
     function today()
     {
         return date("Y-m-d");
+    }
+}
+
+if (!function_exists('json'))
+{
+    /**
+     * Convert to Json
+     * @param $data
+     * @param $option
+     * @return json
+     */
+    function json($data, $option = JSON_UNESCAPED_UNICODE)
+    {
+        $json = json_encode($data, $option);
+        if (json_last_error()) {
+            throw new \Exception("Invalid Json");
+        }
+        return $json;
     }
 }

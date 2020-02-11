@@ -7,11 +7,11 @@ use Atom\Http\Exception\ResponseException;
 
 class Response
 {
-	/**
-	 * Handle Json Error
-	 * @param  int $errno
-	 */
-	protected static function handleJsonError($errno)
+    /**
+     * Handle Json Error
+     * @param  int $errno
+     */
+    protected static function handleJsonError($errno)
     {
         $messages = array(
             JSON_ERROR_DEPTH => 'Maximum stack depth exceeded',
@@ -26,30 +26,31 @@ class Response
             : 'Unknown JSON error: ' . $errno
         );
     }
-	/**
-	 * Convert to Json
-	 * @param  mixed $values
-	 * @param  int $option [description]
-	 * @param  mixed $code
-	 * @return json
-	 */
-	public static function toJson($values, $code = null, $option = JSON_UNESCAPED_UNICODE)
+
+    /**
+     * Convert to Json
+     * @param  mixed $values
+     * @param  int $code
+     * @param  int $option
+     * @return json
+     */
+    public static function toJson($values, $code = null, $option = JSON_UNESCAPED_UNICODE)
     {
         $json = json_encode($values, $option);
         if ($errno = json_last_error()) {
             static::handleJsonError($errno);
         }
-        static::responseCode($code);
-        return $json;
+        // static::responseCode($code);
+        print_r($json);
     }
 
-	/**
-	 * Redirect
-	 * @param  string $uri
-	 * @param  array  $data
-	 * @return void
-	 */
-	public static function redirect(string $uri, array $data = [])
+    /**
+     * Redirect
+     * @param  string $uri
+     * @param  array  $data
+     * @return void
+     */
+    public static function redirect(string $uri, array $data = [])
     {
         if (!is_array($data)) {
             throw new ResponseException(ResponseException::ERR_MSG_INVALID_ARGUMENTS);
@@ -62,17 +63,17 @@ class Response
         exit();
     }
 
-	/**
-	 * Set Http Response Code
-	 * @param  int|null $code
-	 * @return void
-	 */
+    /**
+     * Set Http Response Code
+     * @param  int|null $code
+     * @return void
+     */
     public static function responseCode($code = null)
     {
         if ($code !== null) {
             $message = static::$phrases[$code];
-            if (false === $message) {
-                exit('Unknown http status code "' . htmlentities($code) . '"');
+            if (empty($message)) {
+                throw new ResponseException(ResponseException::ERR_MSG_INVALID_HTTP_CODE);
             }
 
             $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.0');
@@ -83,6 +84,10 @@ class Response
         }
     }
 
+    /**
+     * Http Codes
+     * @var $phrases
+     */
     protected static $phrases = [
         100 => 'Continue',
         101 => 'Switching Protocols',
