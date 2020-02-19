@@ -2,7 +2,7 @@
 
 namespace Atom\Http\Exception;
 
-class RouteException extends \Exception
+class RouterException extends \Exception
 {
     const ERR_MSG_INVALID_ROUTE = "URL Not Found";
 }

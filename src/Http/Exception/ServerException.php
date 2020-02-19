@@ -1,6 +1,6 @@
 <?php
 
-namespace Atom\Htt\Exception;
+namespace Atom\Http\Exception;
 
 class ServerException extends \Exception
 {

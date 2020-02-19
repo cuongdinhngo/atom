@@ -8,7 +8,7 @@ use Atom\Http\Resquest;
 
 class Server
 {
-    protected $route;
+    protected $router;
     protected $server;
     protected $controller;
     protected $controllerMaster;
@@ -21,7 +21,7 @@ class Server
     public function __construct($files = null)
     {
         $this->loadConfig($files);
-        $this->route = new Route();
+        $this->router = new Router();
         $this->controllerMaster = new ControllerMaster();
         date_default_timezone_set(env('TIMEZONE'));
     }
@@ -33,7 +33,7 @@ class Server
     public function handle()
     {
         try {
-            list($class, $method) = $this->route->dispatchController();
+            list($class, $method) = $this->router->dispatchController();
             $this->loadController($class, $method);
         } catch (\Exception $e) {
             echo $e->getMessage();
