@@ -21,8 +21,9 @@ class MySQL
      */
     public function __construct($host, $user, $password, $db, $port)
     {
-        if (!$this->mysqli = new mysqli($host, $user, $password, $db, $port)) {
-            throw new \Exception(DatabaseException::ERR_MSG_CONNECTION_FAIL);
+        $this->mysqli = new mysqli($host, $user, $password, $db, $port);
+        if ($this->mysqli->connect_errno) {
+            throw new DatabaseException(DatabaseException::ERR_MSG_CONNECTION_FAIL);
         }
     }
 
@@ -70,4 +71,39 @@ class MySQL
         return $this->mysqli->error;
     }
 
+    /**
+     * MySQL Last Insert Id
+     * @return int
+     */
+    public function lastestInsertId()
+    {
+        return (int) $this->mysqli->insert_id;
+    }
+
+    /**
+     * Begin transaction
+     * @return bool
+     */
+    public function beginTransaction()
+    {
+        return $this->mysqli->begin_transaction();
+    }
+
+    /**
+     * Commit transaction
+     * @return bool
+     */
+    public function commit()
+    {
+        return $this->mysqli->commit();
+    }
+
+    /**
+     * Roll back current transaction
+     * @return bool
+     */
+    public function rollBack()
+    {
+        return $this->mysqli->rollback();
+    }
 }

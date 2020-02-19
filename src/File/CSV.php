@@ -38,45 +38,45 @@ class CSV
 
     /**
      * Read CSV
-     * @param  string  $filePath
+     * @param  array   $file
      * @param  array   $standardHeader
      * @param  boolean $skipEmpty
      * @return array
      */
-    public static function read(string $filePath, array $standardHeader = [], bool $skipEmpty = true, bool $nullable = false)
+    public static function read(array $file, array $standardHeader = [], bool $skipEmpty = true, bool $nullable = false)
     {
-        return static::parseCsv($filePath, $standardHeader, $skipEmpty, $nullable, false);
+        return static::parseCsv($file, $standardHeader, $skipEmpty, $nullable, false);
     }
 
     /**
      * CSV to Array
-     * @param  string       $filePath
+     * @param  array        $filePath
      * @param  array        $standardHeader
      * @param  bool|boolean $skipEmpty
      * @param  bool|boolean $nullable
      * @return array
      */
-    public static function toArray(string $filePath, array $standardHeader = [], bool $skipEmpty = true, bool $nullable = false)
+    public static function toArray(array $file, array $standardHeader = [], bool $skipEmpty = true, bool $nullable = false)
     {
-    	return static::parseCsv($filePath, $standardHeader, $skipEmpty, $nullable, true);
+        return static::parseCsv($file, $standardHeader, $skipEmpty, $nullable, true);
     }
 
     /**
      * Parse CSV
-     * @param  string       $filePath
+     * @param  array        $file
      * @param  array        $standardHeader
      * @param  bool|boolean $skipEmpty
      * @param  bool|boolean $nullable
      * @param  bool|boolean $toArray
      * @return array
      */
-    public static function parseCsv(string $filePath, array $standardHeader = [], bool $skipEmpty = true, bool $nullable = false, bool $toArray = false)
+    public static function parseCsv(array $file, array $standardHeader = [], bool $skipEmpty = true, bool $nullable = false, bool $toArray = false)
     {
         $data = [];
-        $file = fopen($filePath, "r");
+        $content = fopen($file["tmp_name"], "r");
 
         if (false === empty($standardHeader)) {
-            $fileHeader = fgetcsv($file);
+            $fileHeader = fgetcsv($content);
             $fileHeader = array_map('trim', $fileHeader);
 
             if (array_values($standardHeader) != $fileHeader) {
@@ -84,7 +84,7 @@ class CSV
             }
         }
         
-        while ($line = fgetcsv($file)) {
+        while ($line = fgetcsv($content)) {
             if ((!$skipEmpty || static::$checkEmpty) && (empty($line) || false === (bool)array_filter($line))) {
                 throw new CsvException(CsvException::ERR_MSG_INVALID_DATA);
             }

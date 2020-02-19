@@ -172,6 +172,7 @@ abstract class Database implements DatabaseInterface
         $this->parseValues($request);
         $sql = $this->buildQuery(self::QUERY_INSERT);
         $this->query($sql);
+        return $this->db->lastestInsertId();
     }
 
     /**
@@ -610,7 +611,7 @@ abstract class Database implements DatabaseInterface
             return false;
         }
 
-        $this->limit = $limit ?? '' ;
+        $this->limit = $limit ?? $this->limit;
         $sql = $this->buildQuery(self::QUERY_SELECT);
         $result = $this->query($sql);
         return $this->resultToArray($result);
@@ -683,6 +684,62 @@ abstract class Database implements DatabaseInterface
     public function hasFillable()
     {
         return boolval($this->fillable);
+    }
+
+    /**
+     * Chunk data rows
+     * @param  int $count
+     * @param  callable $callback
+     * @return bool
+     */
+    public function chunk($count, $callback)
+    {
+        $page = 1;
+
+        do {
+            $results = $this->limit($count)->offset(($page - 1) * $count)->get();
+            $countResults = count($results);
+
+            if ($countResults == 0) {
+                break;
+            }
+
+            if ($callback($results, $page) === false) {
+                return false;
+            }
+
+            unset($results);
+            $page++;
+        } while ($countResults == $count);
+
+        return true;
+    }
+
+    /**
+     * Begin transaction
+     * @return bool
+     */
+    public function beginTransaction()
+    {
+        return $this->db->beginTransaction();
+    }
+
+    /**
+     * Commit transaction
+     * @return bool
+     */
+    public function commit()
+    {
+        return $this->db->commit();
+    }
+
+    /**
+     * Roll back current transaction
+     * @return bool
+     */
+    public function rollBack()
+    {
+        return $this->db->rollback();
     }
 
     /**

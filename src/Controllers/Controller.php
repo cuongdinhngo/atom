@@ -10,8 +10,6 @@ class Controller
 {
     use Validator;
 
-    const PREFIX = 'App\\Controllers\\';
-
     /**
      * Request
      * @var $request
@@ -38,7 +36,7 @@ class Controller
 
         require_once($file);
 
-        $controllerClass = self::PREFIX.$class;
+        $controllerClass = env('APP_NAMESPACE').'\\Controllers\\'.$class;
         $controller = new $controllerClass();
         if ($controller) {
             return $controller;
