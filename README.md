@@ -10,7 +10,6 @@ composer require cuongnd88/atom
 ## Single Point Entry
 #### index.php
 <pre>
-<?php
 require __DIR__ . '/../vendor/autoload.php';
 
 use Atom\Http\Server;
