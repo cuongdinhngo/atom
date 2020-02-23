@@ -153,5 +153,23 @@ class Globals
         }
 
         return false;
-	}
+    }
+
+    /**
+     * Free all session variables
+     * @return void
+     */
+    public static function freeSession()
+    {
+        session_unset();
+    }
+
+    /**
+     * Destroy session variables
+     * @return void
+     */
+    public static function destroySession()
+    {
+        session_destroy();
+    }
 }
