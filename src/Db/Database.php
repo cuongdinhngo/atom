@@ -506,7 +506,7 @@ abstract class Database implements DatabaseInterface
     public function select($cols = [])
     {
         $columns = $this->parseRawKey($cols);
-    	$this->selectCols = implode(',', $columns);
+        $this->selectCols = implode(',', $columns);
 
         return $this;
     }

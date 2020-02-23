@@ -41,6 +41,11 @@ class LocalService implements StorageInterface
      */
     public function getFullUrl(string $directory = null)
     {
+        $child = array_filter(explode('/', $directory));
+        $parent = array_shift($child);
+        if ($parent == 'public') {
+            return public_path('/'.implode('/', $child));
+        }
         return $directory ? storage_path($directory) : storage_path();
     }
 
