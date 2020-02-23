@@ -25,7 +25,8 @@ trait Auth
             }
             return $user[0];
         } catch (\Exception $e) {
-            throw new GuardException(GuardException::ERR_MSG_UNAUTHORIZED);
+            Globals::freeSession();
+            Response::redirect(config('app.auth.response.fail'));
         }
     }
 
@@ -35,7 +36,7 @@ trait Auth
      * @param  array  $response
      * @return void
      */
-    public static function login(array $request, array $response)
+    public static function login(array $request, array $response = [])
     {
         $auth = config('app.auth');
         $guards = explode(',', $auth['guard']);
@@ -50,9 +51,11 @@ trait Auth
             [$guardId, '=', $request[$guardId]],
             [$guardPasswd, '=', $request[$guardPasswd]]
         ];
+
         $user = (new Database())->table($auth['table'])->select()->where($condition)->first();
         if (empty($user)) {
-            Response::redirect($fail, ['error' => $error]);
+            Globals::setSession('error', $error);
+            Response::redirect($fail);
         }
 
         //Store guardId
@@ -86,7 +89,8 @@ trait Auth
             $payload = Token::decode($token);
             return;
         } catch (\Exception $e) {
-            throw new GuardException(GuardException::ERR_MSG_UNAUTHORIZED);
+            Globals::freeSession();
+            Response::redirect(config('app.auth.response.fail'));
         }
     }
 }
