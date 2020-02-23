@@ -18,19 +18,20 @@ trait Validator
      * @param  array  $messages
      * @return void
      */
-    public static function validate(array $input, array $rules, array $messages = [])
+    public static function execute(array $input, array $rules, array $messages = [])
     {
         static::checkRules($rules);
-        static::checkMessages();
+        static::checkMessages($messages);
         static::setInput($input);
         $messages = empty($messages) ? static::messages() : $messages;
         foreach ($rules as $attribute => $rule) {
             $rule = stripSpace($rule);
             preg_match('~\\brequired\\b~i', $rule, $required);
             preg_match('/required_if:(.+)\|/', $rule, $requiredIf);
-            if (
-                (empty($required) && empty($requiredIf) && !isset($input[$attribute])) ||
-                ($requiredIf && !isset($input[$requiredIf[1]]) && empty($input[$attribute]))) {
+            if (empty($required) && empty($input[$attribute])) {
+                continue;
+            }
+            if ($requiredIf && !isset($input[$requiredIf[1]]) && empty($input[$attribute])) {
                 continue;
             }
             static::$errors[$attribute] = static::checkValidation($input[$attribute], $rule, $attribute, $messages);
@@ -44,6 +45,7 @@ trait Validator
     public static function setInput(array $input)
     {
         static::$input = $input;
+        $_SESSION['validator'] = $input;
     }
 
     /**
@@ -60,7 +62,12 @@ trait Validator
      */
     public static function errors()
     {
-        return array_filter(static::$errors);
+        $errors = array_filter(static::$errors);
+        if (empty($errors)) {
+            return;
+        }
+        $_SESSION['validator']['errors'] = $errors;
+        return $errors;
     }
 
     /**
@@ -75,15 +82,7 @@ trait Validator
     {
         $rules = array_filter(explode('|', $rules));
         $errors = [];
-        $isBail = false;
         foreach ($rules as $rule) {
-            if ($rule == 'bail') {
-                $isBail = true;
-                continue;
-            }
-            if ($isBail && !empty($errors)) {
-                break;
-            }
             list($rule, $params) = static::getRule($rule);
             $error = call_user_func_array([__NAMESPACE__.'\Validator', $rule], [$value, $attribute, $messages[$rule], $params]);
             if (!empty($error)) {
@@ -113,14 +112,13 @@ trait Validator
 
     /**
      * Check Message
+     * @param  array  $messages
      * @return \Exception
      */
-    public static function checkMessages()
+    public static function checkMessages(array $messages = [])
     {
-        $inputRules = static::getInputRules();
-        $bail = array_search('bail', $inputRules);
-        unset($inputRules[$bail]);
-        if (array_diff($inputRules, array_keys(static::messages()))) {
+        $messages = empty($messages) ? static::messages() : $messages;
+        if (array_diff(static::getInputRules(), array_keys($messages))) {
             throw new ValidationException(ValidationException::ERR_MSG_NO_MESSAGES);
         }
     }
@@ -201,7 +199,7 @@ trait Validator
     public static function rules()
     {
         return [
-            'bail', 'array', 'between', 'date', 'email', 'image', 'in_array', 'integer', 'max', 'min', 'required', 'string', 'after', 'before', 'required_if', 'date_format',
+            'array', 'between', 'date', 'email', 'image', 'in_array', 'integer', 'max', 'min', 'required', 'string', 'after', 'before', 'required_if', 'date_format',
         ];
     }
 
@@ -245,7 +243,7 @@ trait Validator
     {
         list($value, $attribute, $message, $params) = func_get_args();
         return (strtotime($value) !== false) && (strtotime($value) < strtotime($params)) ? '' : vsprintf($message, [$attribute, $params]);
-    }	
+    }
 
     /**
      * Image Validation
@@ -266,7 +264,7 @@ trait Validator
     {
         list($value, $attribute, $message, $params) = func_get_args();
         return strtotime($value) !== false ? '' : vsprintf($message, [$attribute, $params]);
-	}
+    }
 
     /**
      * Array Validation

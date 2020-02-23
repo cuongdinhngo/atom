@@ -186,7 +186,7 @@ class File extends Globals
 
         $core = $this->parse($file)->core();
         list($fileName, $imageType) = $this->extractFileName($directory, $fileName);
-        $storagePath = $fullDirectory . $fileName;
+        $storagePath = $fullDirectory . '/' . $fileName;
 
         $this->isExist($storagePath);
         return [$storagePath, $core, $imageType];

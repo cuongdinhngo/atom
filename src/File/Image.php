@@ -37,6 +37,7 @@ class Image extends File
     {
         list($storagePath, $core, $imageType) = $this->process($directory, $file, $fileName);
         $this->gd->create($storagePath, $core, $imageType);
+        return end(explode('/', $storagePath));
     }
 
     /**
@@ -55,6 +56,7 @@ class Image extends File
 
         list($storagePath, $core, $imageType) = $this->process($directory, $file, $fileName);
         $this->gd->createAndResize($storagePath, $core, $imageType, $size);
+        return end(explode('/', $storagePath));
     }
 
     /**

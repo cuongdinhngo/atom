@@ -1,5 +1,7 @@
 <?php
 
+error_reporting(E_ALL & ~E_NOTICE);
+
 define('DOC_ROOT', $_SERVER["DOCUMENT_ROOT"]);
 define('CONFIG_PATH', DOC_ROOT.'/../config/');
 define('ROUTE_PATH', DOC_ROOT.'/../app/Routes/');
@@ -7,6 +9,8 @@ define('CONTROLLER_PATH', DOC_ROOT.'/../app/Controllers/');
 define('VIEW_PATH', DOC_ROOT.'/../resources/views/');
 define('STORAGE_PATH', DOC_ROOT.'/../storage/');
 define('LOG_PATH', DOC_ROOT.'/../storage/logs/');
+define('RESOURCES_PATH', DOC_ROOT.'/../resources/');
+define('ASSETS_PATH', DOC_ROOT.'/assets/');
 
 if (!function_exists('config')) {
     /**
@@ -108,7 +112,7 @@ if (!function_exists('isApi'))
     function isApi()
     {
         $headers = getHeaders();
-        return (bool) strpos($_SERVER['REQUEST_URI'], 'api') || $headers['Content-Type'] == 'application/json';
+        return (bool) strpos($_SERVER['REQUEST_URI'], 'api') || (isset($headers['Content-Type']) && $headers['Content-Type'] == 'application/json');
     }
 }
 
@@ -121,7 +125,11 @@ if (!function_exists('env'))
      */
     function env(string $varName = null)
     {
-        return getenv($varName);
+        $value = getenv($varName);
+        if (false === $value){
+            throw new \Exception('INVALID ENV VALUE');
+        }
+        return $value;
     }
 }
 
@@ -138,11 +146,14 @@ if (!function_exists('view'))
         if (!is_array($data)) {
             throw new \Exception('Invalid Arguments');
         }
-        $file = VIEW_PATH . $directory . '.php';
+        $file = VIEW_PATH . str_replace('.', '/', $directory) . '.php';
         if (!file_exists($file)) {
             throw new \Exception('Invalid Directory');
         }
-
+        if (isset($_SESSION['validator'])) {
+            extract($_SESSION['validator']);
+            unset($_SESSION['validator']);
+        }
         extract($data);
         include $file;
     }
@@ -215,13 +226,12 @@ if (!function_exists('storage_path'))
         if (empty($path)) {
             return STORAGE_PATH;
         }
-
         if (false === file_exists(STORAGE_PATH . $path))
         {
-            throw new \Exception("Directory Not Found");
+            throw new \Exception("Storage Directory Not Found");
         }
 
-        return STORAGE_PATH . $path .'/';
+        return STORAGE_PATH . $path;
     }
 }
 
@@ -275,5 +285,99 @@ if (!function_exists('gps2Num'))
         if(count($parts) <= 0) return 0;
         if(count($parts) == 1) return $parts[0];
         return floatval($parts[0]) / floatval($parts[1]);
+    }
+}
+
+if (!function_exists('resources_path'))
+{
+    /**
+     * Get Resource path
+     * @param  string $path
+     * @return string
+     */
+    function resources_path($path = '')
+    {
+        if (empty($path)) {
+            return RESOURCES_PATH;
+        }
+        if (false === file_exists(RESOURCES_PATH . $path))
+        {
+            throw new \Exception("Resource Directory Not Found");
+        }
+
+        return RESOURCES_PATH . $path;
+    }
+}
+
+if (!function_exists('assets'))
+{
+    /**
+     * Get assets path in Public folder
+     * @param  string $path
+     * @return string
+     */
+    function assets($path = '')
+    {
+        $assets = url() . '/assets';
+        if (empty($path)) {
+            return $assets;
+        }
+        if (false === file_exists(ASSETS_PATH . $path))
+        {
+            throw new \Exception("Asset Directory Not Found");
+        }
+
+        return $assets . $path;
+    }
+}
+
+if (!function_exists('public_path'))
+{
+    /**
+     * Get Public path
+     * @param  string $path
+     * @return string
+     */
+    function public_path($path = '')
+    {
+        if (empty($path)) {
+            return DOC_ROOT;
+        }
+        if (false === file_exists(DOC_ROOT . $path))
+        {
+            throw new \Exception("Public Directory Not Found");
+        }
+
+        return DOC_ROOT. $path;
+    }
+}
+
+if (!function_exists('url'))
+{
+    /**
+     * Get current url
+     * @param  string $path
+     * @return string
+     */
+    function url($path = '')
+    {
+        $url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]";
+        if (empty($path)) {
+            return $url;
+        }
+        return $url . '/' . $path;
+    }
+}
+
+if (!function_exists('back'))
+{
+    /**
+     * Go back
+     * @param  string $path
+     * @return string
+     */
+    function back()
+    {
+        header("Location: {$_SERVER['HTTP_REFERER']}");
     }
 }
