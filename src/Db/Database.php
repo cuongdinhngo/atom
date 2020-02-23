@@ -6,7 +6,7 @@ use Atom\Db\Driver;
 use Atom\Db\Exception\DatabaseException;
 use Atom\Db\DatabaseInterface;
 
-abstract class Database implements DatabaseInterface
+class Database implements DatabaseInterface
 {
     protected $db;
     protected $table;
