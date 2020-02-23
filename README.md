@@ -10,16 +10,15 @@ composer require cuongnd88/atom
 ## Single Point Entry
 #### index.php
 <pre>
+<?php
 require __DIR__ . '/../vendor/autoload.php';
 
 use Atom\Http\Server;
-use Atom\Http\File\Log;
 
 try {
     $server = new Server(['env']);
     $server->handle();
 } catch (Exception $e) {
-    (new Log())->error($e->getMessage());
     echo $e->getMessage();
 }
 </pre>
