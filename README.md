@@ -24,4 +24,4 @@ try {
 }
 </pre>
 
-For example of implementation and usage, please take a look at EzyCrazy project https://github.com/cuongnd88/ezycrazy which was developed using Jennifer framework
+For example of implementation and usage, please take a look at EzyCrazy project https://github.com/cuongnd88/ezycrazy which was developed using Atom framework
