@@ -2,9 +2,11 @@
 
 namespace Atom\Controllers;
 
+use ReflectionObject;
 use Atom\Http\Request;
 use Atom\Controllers\Exception\ControllerException;
 use Atom\Validation\Validator;
+use Atom\Container\Container;
 
 class Controller
 {
@@ -17,12 +19,19 @@ class Controller
     protected $request;
 
     /**
+     * Container
+     * @var $container
+     */
+    protected $container;
+
+    /**
      * Controller construct
      * @param Request|null $request
      */
     public function __construct(Request $request = null)
     {
         $this->request = $request ?? new Request();
+        $this->container = new Container();
     }
 
     /**
@@ -37,7 +46,8 @@ class Controller
         require_once($file);
 
         $controllerClass = env('APP_NAMESPACE').'\\Controllers\\'.$class;
-        $controller = new $controllerClass();
+        $controller = $this->container->resolve($controllerClass);
+
         if ($controller) {
             return $controller;
         }
@@ -55,7 +65,9 @@ class Controller
             throw new ControllerException(ControllerException::ERR_MSG_ACTION_FAIL);
         }
 
-        $result = $this->$method();
+        $methodReflection = (new ReflectionObject($this))->getMethod($method);
+        $result = $methodReflection->invoke($this);
+
         if ($result === false) {
             throw new ControllerException(ControllerException::ERR_MSG_ACTION_FAIL);
         }
