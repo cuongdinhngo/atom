@@ -71,16 +71,11 @@ class Response
     public static function responseCode($code = null)
     {
         if ($code !== null) {
-            $message = static::$phrases[$code];
-            if (empty($message)) {
+            if (empty(static::$phrases[$code])) {
                 throw new ResponseException(ResponseException::ERR_MSG_INVALID_HTTP_CODE);
             }
 
-            $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.0');
-            header($protocol . ' ' . $code . ' ' . $message);
-            $GLOBALS['http_response_code'] = $code;
-        } else {
-            $GLOBALS['http_response_code'] = 200;
+            http_response_code($code);
         }
     }
 
