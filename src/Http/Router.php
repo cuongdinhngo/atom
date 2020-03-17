@@ -4,6 +4,7 @@ namespace Atom\Http;
 
 use Atom\Http\Globals;
 use Atom\Http\Exception\RouterException;
+use Atom\Http\Middlewares\Middleware;
 
 class Router
 {
@@ -25,12 +26,16 @@ class Router
      */
     public function dispatchController()
     {
-        $call = $this->dispatchRoute();
-        if (empty($call)) {
+        $routeData = $this->dispatchRoute();
+        if (empty($routeData)) {
             throw new RouterException(RouterException::ERR_MSG_INVALID_ROUTE);
         }
 
-        $actions = array_column($call, strtolower($this->method));
+        if (isset($routeData['middleware']) && !empty($routeData['middleware'])) {
+            (new Middleware($routeData['middleware']))->execute();
+        }
+
+        $actions = array_column($routeData, strtolower($this->method));
         list($class, $function) = explode('@', $actions[0]);
         if (empty($class)) {
             throw new RouterException(RouterException::ERR_MSG_INVALID_ROUTE);
