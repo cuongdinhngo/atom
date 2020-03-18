@@ -2,17 +2,22 @@
 
 namespace Atom\Http;
 
-use Atom\Http\Globals;
 use Atom\Controllers\Controller as ControllerMaster;
-use Atom\Http\Resquest;
+use Atom\Http\Middlewares\Middleware;
 
 class Server
 {
+    /**
+     * Router
+     * @var Object
+     */
     protected $router;
-    protected $server;
-    protected $controller;
+
+    /**
+     * Controller Master
+     * @var Object
+     */
     protected $controllerMaster;
-    protected $request;
 
     /**
      * Server construct
@@ -33,24 +38,11 @@ class Server
     public function handle()
     {
         try {
-            list($class, $method) = $this->router->dispatchController();
-            $this->loadController($class, $method);
-        } catch (\Exception $e) {
-            echo $e->getMessage();
-        }
-    }
+            $routeData = $this->router->dispatchRouter();
 
-    /**
-     * Load controller
-     * @param  string $class
-     * @param  string $method
-     * @return void
-     */
-    public function loadController($class, $method)
-    {
-        try {
-            $this->controller = $this->controllerMaster->init($class);
-            $this->controller->callMethod($method);
+            $this->handleMiddlewares($routeData);
+
+            $this->controllerMaster->loadController($routeData);
         } catch (\Exception $e) {
             echo $e->getMessage();
         }
@@ -66,5 +58,18 @@ class Server
         foreach ($files as $file) {
             config($file);
         }
+    }
+
+    /**
+     * Handle Middlewares
+     * @param  array $routeData Route Data
+     * @return void
+     */
+    public function handleMiddlewares($routeData)
+    {
+        if (false === isset($routeData['middleware']) && empty($routeData['middleware'])) {
+            return;
+        }
+        (new Middleware($routeData['middleware']))->execute();
     }
 }
