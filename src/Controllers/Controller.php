@@ -4,9 +4,10 @@ namespace Atom\Controllers;
 
 use ReflectionObject;
 use Atom\Http\Request;
-use Atom\Controllers\Exception\ControllerException;
 use Atom\Validation\Validator;
 use Atom\Container\Container;
+use Atom\Http\Globals;
+use Atom\Controllers\Exception\ControllerException;
 
 class Controller
 {
@@ -14,15 +15,21 @@ class Controller
 
     /**
      * Request
-     * @var $request
+     * @var Request
      */
     protected $request;
 
     /**
      * Container
-     * @var $container
+     * @var Container
      */
     protected $container;
+
+    /**
+     * Request method
+     * @var string
+     */
+    protected $requestMethod;
 
     /**
      * Controller construct
@@ -32,6 +39,23 @@ class Controller
     {
         $this->request = $request ?? new Request();
         $this->container = new Container();
+        $this->requestMethod = Globals::method();
+    }
+
+    /**
+     * Load controller
+     * @param  array $routeData Route data
+     * @return void
+     */
+    public function loadController($routeData)
+    {
+        try {
+            list($class, $method) = $this->dispatchController($routeData);
+            $this->controller = $this->init($class);
+            $this->controller->callMethod($method);
+        } catch (\Exception $e) {
+            echo $e->getMessage();
+        }
     }
 
     /**
@@ -82,11 +106,27 @@ class Controller
     {
         $file = CONTROLLER_PATH . $class . '.php';
         if (!file_exists($file)) {
-            throw new \Exception(ControllerException::ERR_MSG_INVALID_CONTROLLER);
+            throw new ControllerException(ControllerException::ERR_MSG_INVALID_CONTROLLER);
         }
         $class = str_replace("/", "\\", $class);
 
         return [$file, $class];
     }
 
+    /**
+     * Dispatch Controller
+     * @param  array $routeData Data is gained from route file
+     * @return array
+     * @throws ControllerException
+     */
+    public function dispatchController($routeData)
+    {
+        $actions = array_column($routeData, strtolower($this->requestMethod));
+        list($class, $function) = explode('@', $actions[0]);
+        if (empty($class)) {
+            throw new ControllerException(ControllerException::ERR_MSG_INVALID_CONTROLLER);
+        }
+
+        return [$class, $function];
+    }
 }
