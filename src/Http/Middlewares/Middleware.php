@@ -19,13 +19,20 @@ class Middleware
     protected $impMiddlewares;
 
     /**
+     * Priority Middlewares
+     * @var array
+     */
+    protected $priorityMiddlewares;
+
+    /**
      * Middleware construct
      * @param array $middlewares Implemented middlwares
      */
     public function __construct($impMiddlewares)
     {
         $this->impMiddlewares = $impMiddlewares;
-        $this->middlewares = config('middleware');
+        $this->middlewares = config('middleware.routeMiddlewares');
+        $this->priorityMiddlewares = config('middleware.priorityMiddlewares');
     }
 
     /**
@@ -35,6 +42,7 @@ class Middleware
     public function execute()
     {
         $this->checkMiddlewares();
+        $this->sortMiddlewares();
         foreach ($this->impMiddlewares as $middlewareAlias) {
             $middlewareClass = $this->middlewares[$middlewareAlias];
             $this->runMiddleware($middlewareClass);
@@ -100,5 +108,18 @@ class Middleware
         if (false === empty($diff)) {
             throw new MiddlewareException(MiddlewareException::ERR_MSG_INVALID_MIDDLEWARES);
         }
+    }
+
+    /**
+     * Sort middleware
+     * @return void
+     */
+    public function sortMiddlewares()
+    {
+        $highPriority = array_intersect(array_keys($this->priorityMiddlewares), $this->impMiddlewares);
+        $tmp = array_diff($this->impMiddlewares, $highPriority);
+        $this->impMiddlewares = array_merge($highPriority, $tmp);
+        unset($highPriority);
+        unset($tmp);
     }
 }
