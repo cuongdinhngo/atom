@@ -94,7 +94,7 @@ class Globals
     public static function __callStatic($method, $args) {
         $called = get_called_class();
         $class = new $called();
-        return call_user_func_array([$class, $method], $args);
+        return $class->method(...$args);
     }
 
     /**

@@ -6,18 +6,47 @@ use Atom\Http\Globals;
 
 class Request
 {
+    /**
+     * Request
+     * @var array
+     */
     public $request;
+
+    /**
+     * URI
+     * @var string
+     */
     public $uri;
+
+    /**
+     * Request method
+     * @var string
+     */
     public $method;
+
+    /**
+     * Get Request by GET method
+     * @var array
+     */
     public $get;
+
+    /**
+     * Get Request by POST method
+     * @var array
+     */
     public $post;
+
+    /**
+     * Get Request by File
+     * @var array
+     */
     public $files;
 
     /**
      * Request construct
      */
     public function __construct()
-	{
+    {
         $this->uri = Globals::uri();
         $this->method = Globals::method();
         $this->get = Globals::get();
@@ -75,7 +104,25 @@ class Request
             $params = array_merge($params, $tmpParams);
         }
 
+        if (!empty($tmpParams = $this->getRawData())) {
+            $params = array_merge($params, $tmpParams);
+        }
+
         return $params;
+    }
+
+    /**
+     * Get raw data
+     * @return array
+     */
+    public function getRawData()
+    {
+        $content = file_get_contents('php://input');
+        $data = json_decode($content, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            return $data;
+        }
+        return [$content];
     }
 
     /**
