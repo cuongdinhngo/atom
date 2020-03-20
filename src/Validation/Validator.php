@@ -45,7 +45,6 @@ trait Validator
     public static function setInput(array $input)
     {
         static::$input = $input;
-        $_SESSION['validator'] = $input;
     }
 
     /**
@@ -64,9 +63,8 @@ trait Validator
     {
         $errors = array_filter(static::$errors);
         if (empty($errors)) {
-            return;
+            return [];
         }
-        $_SESSION['validator']['errors'] = $errors;
         return $errors;
     }
 
