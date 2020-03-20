@@ -1,5 +1,7 @@
 <?php
 
+use Atom\Template\Template;
+
 if (!function_exists('config')) {
     /**
      * Load configured files
@@ -125,24 +127,39 @@ if (!function_exists('view'))
 {
     /**
      * Render view
-     * @param  string $directory [description]
-     * @param  array  $data      [description]
+     * @param  string $tempKey   Template Key
+     * @param  string $directory Directory (ex: 'admin.users.list')
+     * @param  array  $data      Data
      * @return void
      */
-    function view(string $directory, array $data = [])
+    function view(string $tempKey, string $directory = "", array $data = [])
     {
-        if (!is_array($data)) {
-            throw new \Exception('Invalid Arguments');
+        $viewTemplates = config('templates.'.$tempKey.'.template');
+        $filledTemp = array_search(null, $viewTemplates);
+
+        if ($filledTemp !== false && empty($directory) === false) {
+            $viewTemplates[$filledTemp] = $directory;
         }
+
+        $html = (new Template($viewTemplates, $data))->render();
+        echo $html;
+        exit();
+    }
+}
+
+if (!function_exists('include_view'))
+{
+    /**
+     * Include view file
+     * @param  string $directory Directory
+     * @return void
+     */
+    function include_view(string $directory)
+    {
         $file = VIEW_PATH . str_replace('.', '/', $directory) . '.php';
         if (!file_exists($file)) {
             throw new \Exception('Invalid Directory');
         }
-        if (isset($_SESSION['validator'])) {
-            extract($_SESSION['validator']);
-            unset($_SESSION['validator']);
-        }
-        extract($data);
         include $file;
     }
 }
