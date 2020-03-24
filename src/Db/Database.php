@@ -39,10 +39,17 @@ class Database implements DatabaseInterface
 
     /**
      * Database construct
+     *
+     * @param string|null $driver   Database Driver
+     * @param string|null $host     Database Host
+     * @param string|null $user     Database User
+     * @param string|null $password User Password
+     * @param string|null $database Database Name
+     * @param string|null $port     Database Port
      */
-    public function __construct()
+    public function __construct(string $driver = null, string $host = null, string $user = null, string $password = null, string $database = null, string $port = null)
     {
-        $this->db = (new Driver())->createConnection();
+        $this->db = (new Driver($driver, $host, $user, $password, $database, $port))->createConnection();
     }
 
     /**
@@ -166,7 +173,7 @@ class Database implements DatabaseInterface
             return false;
         }
 
-        if (!is_array($request) || is_array($request[0])) {
+        if (!is_array($request) || (isset($request[0]) && is_array($request[0]))) {
             throw new DatabaseException(DatabaseException::ERR_MSQ_BAD_REQUEST, DatabaseException::ERR_CODE_BAD_REQUEST);
         }
         $this->parseValues($request);

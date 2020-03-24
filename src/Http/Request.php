@@ -117,7 +117,9 @@ class Request
      */
     public function getRawData()
     {
-        $content = file_get_contents('php://input');
+        if (empty($content = file_get_contents('php://input'))){
+            return [];
+        }
         $data = json_decode($content, true);
         if (json_last_error() === JSON_ERROR_NONE) {
             return $data;
