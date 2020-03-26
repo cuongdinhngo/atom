@@ -5,9 +5,47 @@ namespace Atom\Db;
 use Atom\Db\Driver;
 use Atom\Db\Exception\DatabaseException;
 use Atom\Db\DatabaseInterface;
+use Atom\File\Log;
 
 class Database implements DatabaseInterface
 {
+    /**
+     * Database Driver
+     * @var string
+     */
+    protected $driver;
+
+    /**
+     * Database Host
+     * @var string
+     */
+    protected $host;
+
+    /**
+     * Database User
+     * @var string
+     */
+    protected $user;
+
+    /**
+     * User password
+     * @var string
+     */
+    protected $password;
+
+    /**
+     * Database Name
+     * @var string
+     */
+    protected $database;
+
+    /**
+     * Database Port
+     * @var string
+     */
+    protected $port;
+
+    protected static $con = [];
     protected $db;
     protected $table;
     protected $result;
@@ -29,6 +67,7 @@ class Database implements DatabaseInterface
     protected $innerJoin;
     protected $leftJoin;
     protected $rightJoin;
+    protected $where = [];
 
     const QUERY_SELECT = "SELECT";
     const QUERY_INSERT = "INSERT";
@@ -49,7 +88,22 @@ class Database implements DatabaseInterface
      */
     public function __construct(string $driver = null, string $host = null, string $user = null, string $password = null, string $database = null, string $port = null)
     {
-        $this->db = (new Driver($driver, $host, $user, $password, $database, $port))->createConnection();
+        $this->driver   = $driver ?? env('DB_CONNECTION');
+        $this->host     = $host ?? env('DB_HOST');
+        $this->user     = $user ?? env('DB_USER');
+        $this->password = $password ?? env('DB_PASSWORD');
+        $this->database = $database ?? env('DB_NAME');
+        $this->port     = $port ?? env('DB_PORT');
+
+        $mode = $this->driver.'/'.$this->host.'/'.$this->database;
+
+        if (isset(static::$con[$mode])) {
+            $this->db = static::$con[$mode];
+        }
+        if (empty(static::$con) && !isset(static::$con[$mode])) {
+            $this->db = (new Driver($this->driver, $this->host, $this->user, $this->password, $this->database, $this->port))->createConnection();
+            static::$con[$mode] = $this->db;
+        }
     }
 
     /**
@@ -59,6 +113,9 @@ class Database implements DatabaseInterface
      */
     protected function buildQuery($type)
     {
+        if (false === empty($this->where)) {
+            $this->conditions .= " AND " . implode(' AND ', $this->where);
+        }
         switch ($type) {
             case self::QUERY_TRUNCATE:
                 $sql = "TRUNCATE {$this->table}";
@@ -283,21 +340,18 @@ class Database implements DatabaseInterface
      */
     public function where($conditions = [])
     {
-        $where = [];
-
         if (!is_array($conditions) || empty($conditions)) {
             throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
         }
 
         if (!is_array($conditions[0])) {
-            $where[] = $this->parseConditions($conditions);
+            $this->where[] = $this->parseConditions($conditions);
         } else {
             foreach ($conditions as $condition) {
-                $where[] = $this->parseConditions($condition);
+                $this->where[] = $this->parseConditions($condition);
             }
         }
 
-        $this->conditions .= " AND " . implode(' AND ', $where);
         return $this;
     }
 
@@ -344,12 +398,12 @@ class Database implements DatabaseInterface
      */
     public function orWhere()
     {
-        if (func_num_args() != 2) {
+        if (!is_array(func_get_args()[0]) || empty(func_get_args()[0])) {
             throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
         }
 
-        list($key, $value) = func_get_args();
-        $this->conditions .= " OR {$this->escape($key)}" . ' = ' . "'{$this->escape($value)}'";
+        $this->conditions .= " OR ".$this->parseConditions(func_get_args()[0]);
+
         return $this;
 
     }
@@ -747,6 +801,19 @@ class Database implements DatabaseInterface
     public function rollBack()
     {
         return $this->db->rollback();
+    }
+
+    /**
+     * Set Fillable
+     *
+     * @param array $fillable Fillable
+     *
+     * @return $this
+     */
+    public function setFillable(array $fillable)
+    {
+        $this->fillable = $fillable;
+        return $this;
     }
 
     /**
