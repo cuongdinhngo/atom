@@ -32,11 +32,8 @@ class Globals
      */
     public static function uri()
     {
-        if (isApi()) {
-            $uri = static::server('REQUEST_URI');
-            return (bool) strpos($uri, 'api') ? substr($uri, 4) : $uri;
-        }
-        return static::server('REQUEST_URI');
+        $uri = static::server('REQUEST_URI');
+        return isApi() ? substr($uri, 4) : $uri;
     }
 
     /**

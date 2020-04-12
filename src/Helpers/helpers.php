@@ -123,7 +123,7 @@ if (!function_exists('env'))
     }
 }
 
-if (!function_exists('view'))
+if (!function_exists('template'))
 {
     /**
      * Render view
@@ -132,7 +132,7 @@ if (!function_exists('view'))
      * @param  array  $data      Data
      * @return void
      */
-    function view(string $tempKey, string $directory = "", array $data = [])
+    function template(string $tempKey, string $directory = "", array $data = [])
     {
         $viewTemplates = config('templates.'.$tempKey.'.template');
         $filledTemp = array_search(null, $viewTemplates);
@@ -147,19 +147,21 @@ if (!function_exists('view'))
     }
 }
 
-if (!function_exists('include_view'))
+if (!function_exists('view'))
 {
     /**
      * Include view file
      * @param  string $directory Directory
+     * @param  array  $data      Data
      * @return void
      */
-    function include_view(string $directory)
+    function view(string $directory, array $data = [])
     {
         $file = VIEW_PATH . str_replace('.', '/', $directory) . '.php';
         if (!file_exists($file)) {
             throw new \Exception('Invalid Directory');
         }
+        extract($data);
         include $file;
     }
 }
