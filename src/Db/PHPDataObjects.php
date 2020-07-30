@@ -2,6 +2,7 @@
 
 namespace Atom\Db;
 
+
 use Atom\Db\Exception\DatabaseException;
 use PDO;
 
@@ -60,8 +61,6 @@ abstract class PHPDataObjects
      */
     public function execute($query)
     {
-        var_dump($query);
-        var_dump($this->params);
         $this->sth = $this->db->prepare($query);
         foreach ($this->params as $key => $value) {
             $this->sth->bindParam(':' .$key, $this->params[$key]);
