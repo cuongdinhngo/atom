@@ -2,14 +2,13 @@
 
 namespace Atom\Db;
 
-
 use Atom\Db\Exception\DatabaseException;
 use PDO;
 
 abstract class PHPDataObjects
 {
-    public $db;
-    public $sth;
+    protected static $con = [];
+    protected $sth;
     protected $table;
     protected $params = [];
     protected $where = [];
@@ -19,7 +18,7 @@ abstract class PHPDataObjects
      */
     public function __construct()
     {
-        $this->connect($host, $user, $password, $db, $port);
+        $this->connect(env('DB_HOST'), env('DB_USER'), env('DB_PASSWORD'), env('DB_NAME'), env('DB_PORT'));
     }
 
     /**
@@ -28,15 +27,22 @@ abstract class PHPDataObjects
      * @param string $host     DB Host
      * @param string $user     DB User
      * @param string $password DB User's password
-     * @param string $db       DB Name
+     * @param string $database DB Name
      * @param string $port     DB Port
      *
      * @return void
      */
-    public function connect()
+    public function connect(string $host, string $user, string $password, string $database, string $port)
     {
         try {
-            $this->db = new PDO(env('DB_CONNECTION') . ':dbname=' . env('DB_NAME') .';host=' . env('DB_HOST') . ';port=' . env('DB_PORT'), env('DB_USER'), env('DB_PASSWORD'));
+            $mode = env('DB_CONNECTION') .'/'. $host .'/'. $database;
+            if (isset(static::$con[$mode])) {
+                $this->db = static::$con[$mode];
+            }
+            if (empty(static::$con) && !isset(static::$con[$mode])) {
+                $this->db = new PDO(env('DB_CONNECTION') . ':dbname=' . $database .';host=' . $host . ';port=' . $port, $user, $password);
+                static::$con[$mode] = $this->db;
+            }
         } catch (PDOException $e) {
             throw new \Exception(DatabaseException::ERR_MSG_CONNECTION_FAIL . ' => ' . $e->getMessage());
         }
@@ -62,8 +68,8 @@ abstract class PHPDataObjects
     public function execute($query)
     {
         $this->sth = $this->db->prepare($query);
-        foreach ($this->params as $key => $value) {
-            $this->sth->bindParam(':' .$key, $this->params[$key]);
+        foreach ($this->params as $key => &$value) {
+            $this->sth->bindParam(':' .$key, $value);
         }
         $this->sth->execute();
         return $this->sth;
