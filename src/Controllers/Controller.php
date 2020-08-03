@@ -150,10 +150,10 @@ class Controller
         }
         // Create a simple "default" Doctrine ORM configuration for Annotations
         $config = Setup::createAnnotationMetadataConfiguration(
-            [DOC_ROOT.env('DBAL_PATH_CONFIG')], 
-            (bool) env('DBAL_DEV_MODE'), 
-            env('DBAL_PROXY_DIR') ? env('DBAL_PROXY_DIR') : null, 
-            env('DBAL_CACHE') ? env('DBAL_CACHE') : null, 
+            [DOC_ROOT.env('DBAL_PATH_CONFIG')],
+            (bool) env('DBAL_DEV_MODE'),
+            env('DBAL_PROXY_DIR') ? env('DBAL_PROXY_DIR') : null,
+            env('DBAL_CACHE') ? env('DBAL_CACHE') : null,
             (bool) env('DBAL_USE_SIMPLE_ANNO_READER')
         );
 
