@@ -8,6 +8,8 @@ use Atom\Validation\Validator;
 use Atom\Container\Container;
 use Atom\Http\Globals;
 use Atom\Controllers\Exception\ControllerException;
+use Doctrine\ORM\Tools\Setup;
+use Doctrine\ORM\EntityManager;
 
 class Controller
 {
@@ -30,6 +32,12 @@ class Controller
      * @var string
      */
     protected $requestMethod;
+
+    /**
+     * Doctrine Entity Manager
+     * @var EntityManager
+     */
+    protected $entityManager;
 
     /**
      * Controller construct
@@ -128,5 +136,37 @@ class Controller
         }
 
         return [$class, $function];
+    }
+
+    /**
+     * Get Doctrine Entity Manager
+     *
+     * @return EntityManager | Exception
+     */
+    public function getDoctrineEntityManager()
+    {
+        if (false === boolval(env('DBAL_IN_USE'))) {
+            throw new ControllerException(ControllerException::ERR_MSG_DOCTRINE_NOT_USE);
+        }
+        // Create a simple "default" Doctrine ORM configuration for Annotations
+        $config = Setup::createAnnotationMetadataConfiguration(
+            [DOC_ROOT.env('DBAL_PATH_CONFIG')],
+            (bool) env('DBAL_DEV_MODE'),
+            env('DBAL_PROXY_DIR') ? env('DBAL_PROXY_DIR') : null,
+            env('DBAL_CACHE') ? env('DBAL_CACHE') : null,
+            (bool) env('DBAL_USE_SIMPLE_ANNO_READER')
+        );
+
+        // database configuration parameters
+        $conn = array(
+            'driver' => env('DB_DRIVER'),
+            'dbname' => env('DB_NAME'),
+            'user' => env('DB_USER'),
+            'password' => env('DB_PASSWORD'),
+            'host' => env('DB_HOST').':'.env('DB_PORT'),
+        );
+
+        // obtaining the entity manager
+        return EntityManager::create($conn, $config);
     }
 }
