@@ -3,14 +3,15 @@
 namespace Atom\Http;
 
 use Atom\Http\Globals;
+use ArrayAccess;
 
-class Request
+class Request implements ArrayAccess
 {
     /**
      * Request
      * @var array
      */
-    public $request;
+    public $request = [];
 
     /**
      * URI
@@ -52,16 +53,7 @@ class Request
         $this->get = Globals::get();
         $this->post = Globals::post();
         $this->files = Globals::files();
-    }
-
-    /**
-     * Create request
-     * @return $this
-     */
-    public function create()
-    {
-        $this->request = $this->collectParameters();
-        return $this;
+        $this->request = (array) $this->collectParameters();
     }
 
     /**
@@ -70,7 +62,7 @@ class Request
      */
     public function all()
     {
-        return (array) $this->collectParameters();
+        return $this->request;
     }
 
     /**
@@ -124,7 +116,8 @@ class Request
         if (json_last_error() === JSON_ERROR_NONE) {
             return $data;
         }
-        return [$content];
+        parse_str($content, $data);
+        return $data;
     }
 
     /**
@@ -182,5 +175,101 @@ class Request
 
         parse_str($params, $compileParams);
         return $compileParams;
+    }
+
+    /**
+     * Get a data by key
+     *
+     * @param string The key data to retrieve
+     * @access public
+     */
+    public function &__get ($key) {
+        return $this->request[$key];
+    }
+
+    /**
+     * Assigns a value to the specified data
+     *
+     * @param string The data key to assign the value to
+     * @param mixed  The value to set
+     * @access public
+     */
+    public function __set($key,$value) {
+        $this->request[$key] = $value;
+    }
+
+    /**
+     * Whether or not an data exists by key
+     *
+     * @param string An data key to check for
+     * @access public
+     * @return boolean
+     * @abstracting ArrayAccess
+     */
+    public function __isset ($key) {
+        return isset($this->request[$key]);
+    }
+
+    /**
+     * Unsets an data by key
+     *
+     * @param string The key to unset
+     * @access public
+     */
+    public function __unset($key) {
+        unset($this->request[$key]);
+    }
+
+    /**
+     * Assigns a value to the specified offset
+     *
+     * @param string The offset to assign the value to
+     * @param mixed  The value to set
+     * @access public
+     * @abstracting ArrayAccess
+     */
+    public function offsetSet($offset,$value) {
+        if (is_null($offset)) {
+            $this->request[] = $value;
+        } else {
+            $this->request[$offset] = $value;
+        }
+    }
+
+    /**
+     * Whether or not an offset exists
+     *
+     * @param string An offset to check for
+     * @access public
+     * @return boolean
+     * @abstracting ArrayAccess
+     */
+    public function offsetExists($offset) {
+        return isset($this->request[$offset]);
+    }
+
+    /**
+     * Unsets an offset
+     *
+     * @param string The offset to unset
+     * @access public
+     * @abstracting ArrayAccess
+     */
+    public function offsetUnset($offset) {
+        if ($this->offsetExists($offset)) {
+            unset($this->request[$offset]);
+        }
+    }
+
+    /**
+     * Returns the value at specified offset
+     *
+     * @param string The offset to retrieve
+     * @access public
+     * @return mixed
+     * @abstracting ArrayAccess
+     */
+    public function offsetGet($offset) {
+        return $this->offsetExists($offset) ? $this->request[$offset] : null;
     }
 }

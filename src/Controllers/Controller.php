@@ -43,9 +43,8 @@ class Controller
      * Controller construct
      * @param Request|null $request
      */
-    public function __construct(Request $request = null)
+    public function __construct()
     {
-        $this->request = $request ?? new Request();
         $this->container = new Container();
         $this->requestMethod = Globals::method();
     }
@@ -98,8 +97,8 @@ class Controller
         }
 
         $methodReflection = (new ReflectionObject($this))->getMethod($method);
-        $result = $methodReflection->invoke($this);
-
+        $dependencies = $this->container->getDependencies($methodReflection->getParameters());
+        $result = $methodReflection->invokeArgs($this, $dependencies);
         if ($result === false) {
             throw new ControllerException(ControllerException::ERR_MSG_ACTION_FAIL);
         }
