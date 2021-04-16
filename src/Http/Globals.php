@@ -11,19 +11,7 @@ class Globals
     public static function path()
     {
         $uri = static::uri();
-        $path = parse_url($uri, PHP_URL_PATH);
-        $explode = explode('/', $path);
-
-        if (is_null(parse_url($uri, PHP_URL_QUERY))) {
-            $last = end($explode);
-            if (strval($last) === strval(intval($last))) {
-                array_pop($explode);
-            }
-        }
-
-        $path = implode('/', $explode);
-
-        return $path;
+        return parse_url($uri, PHP_URL_PATH);
     }
 
     /**
@@ -89,9 +77,10 @@ class Globals
      * @return void
      */
     public static function __callStatic($method, $args) {
-        $called = get_called_class();
-        $class = new $called();
-        return $class->$method(...$args);
+        // $called = get_called_class();
+        // $class = new $called();
+        // return $class->$method(...$args);
+        return $this->$method(...$args);
     }
 
     /**
