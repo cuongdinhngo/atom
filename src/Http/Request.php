@@ -143,38 +143,49 @@ class Request implements ArrayAccess
      */
     public function extractUriParameters()
     {
-        $params = parse_url($this->uri, PHP_URL_QUERY);
-        $path = parse_url($this->uri, PHP_URL_PATH);
-
-        if (is_null($params)) {
-            $explode = explode('/', $path);
-            $last = end($explode);
-
-            if (strval($last) === strval(intval($last))) {
-                $params = (int) $last;
-            }
-        }
-
-        return $this->compileParameters($params);
+        parse_str(parse_url($this->uri, PHP_URL_QUERY), $params);
+        return array_merge($params, $this->parseUriParams());
     }
 
     /**
-     * Compile parameters
-     * @param  mixed $params
-     * @return mixed
+     * Parse parameters in URI
+     *
+     * @return array
      */
-    public function compileParameters($params)
+    public function parseUriParams()
     {
-        if (is_null($params)) {
-            return $params;
+        $path = Globals::path();
+        $patternCurrentUri = preg_replace("/[0-9]+/", '#', $path);
+        $routers = isApi() ? route('api') : route('web');
+        foreach ($routers as $route => $data) {
+            $tmp = preg_replace('/\{[a-zA-Z]+\}+/', '#', $route);
+            if ($tmp == $patternCurrentUri) {
+                return $this->mapParams($path, $route);
+            }
         }
+    }
 
-        if (is_int($params)) {
-            return ['id' => $params];
+    /**
+     * Map key and value for Parameters
+     *
+     * @param  [type] $current [description]
+     * @param  [type] $expect  [description]
+     *
+     * @return [type]          [description]
+     */
+    public function mapParams($current, $expect)
+    {
+        $arrUri = explode('/', $current);
+        $arrRoute = explode('/', $expect);
+        $tmp = array_combine($arrRoute, $arrUri);
+        $params = [];
+        foreach($tmp as $key => $value) {
+            if (preg_match('/^\{|\}$/', $key)) {
+                $key = preg_replace('/^.|.$/','',$key);
+                $params[$key] = $value;
+            }
         }
-
-        parse_str($params, $compileParams);
-        return $compileParams;
+        return $params;
     }
 
     /**
