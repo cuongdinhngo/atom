@@ -77,10 +77,9 @@ class Globals
      * @return void
      */
     public static function __callStatic($method, $args) {
-        // $called = get_called_class();
-        // $class = new $called();
-        // return $class->$method(...$args);
-        return $this->$method(...$args);
+        $called = get_called_class();
+        $class = new $called();
+        return $class->$method(...$args);
     }
 
     /**

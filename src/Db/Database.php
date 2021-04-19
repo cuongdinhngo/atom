@@ -697,7 +697,12 @@ class Database implements DatabaseInterface
      */
     public function first()
     {
-        return $this->get(1);
+        if (method_exists($this, 'mapAttributes')) {
+            $this->mapAttributes($this->get(1)[0]);
+            return $this;
+        } else {
+            return $this->get(1)[0];
+        }
     }
 
     /**

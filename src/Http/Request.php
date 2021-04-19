@@ -53,7 +53,7 @@ class Request implements ArrayAccess
         $this->get = Globals::get();
         $this->post = Globals::post();
         $this->files = Globals::files();
-        $this->request = (array) $this->collectParameters();
+        $this->request = $this->collectParameters();
     }
 
     /**
@@ -62,7 +62,7 @@ class Request implements ArrayAccess
      */
     public function all()
     {
-        return $this->request;
+        return (array) $this->request;
     }
 
     /**
