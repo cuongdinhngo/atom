@@ -1,6 +1,7 @@
 # Atom - A Simple PHP Framework
 
 Atom is a simple PHP framework that implements MVC pattern.
+Please read more [`Request Lifecycle Atom`](https://www.linkedin.com/pulse/atom-simple-php-framework-implements-mvc-pattern-cuong-dinh-ngo)
 
 # Configuration
 <pre>
