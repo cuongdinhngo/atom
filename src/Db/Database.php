@@ -863,6 +863,10 @@ class Database implements DatabaseInterface
         unset($this->offset);
         unset($this->where);
         unset($this->selectCols);
+        unset($this->fillable);
+        unset($this->insertKeys);
+        unset($this->insertValues);
+        unset($this->updateValues);
     }
 
 }
