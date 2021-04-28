@@ -167,6 +167,8 @@ class Database implements DatabaseInterface
                 break;
         }
 
+        $this->reset();
+
         return $sql;
     }
 
@@ -843,6 +845,28 @@ class Database implements DatabaseInterface
     public function __destruct()
     {
         unset($this->db);
+    }
+
+    /**
+     * Reset values
+     */
+    public function reset()
+    {
+        unset($this->conditions);
+        unset($this->groupBy);
+        unset($this->having);
+        unset($this->orderBy);
+        unset($this->innerJoin);
+        unset($this->leftJoin);
+        unset($this->rightJoin);
+        unset($this->limit);
+        unset($this->offset);
+        unset($this->where);
+        unset($this->selectCols);
+        unset($this->fillable);
+        unset($this->insertKeys);
+        unset($this->insertValues);
+        unset($this->updateValues);
     }
 
 }

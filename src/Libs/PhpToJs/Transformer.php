@@ -52,9 +52,6 @@ class Transformer extends Globals
     protected function bind($js)
     {
         $file = VIEW_PATH . str_replace('.', '/', $this->file) . ".php";
-        if (!file_exists($file)) {
-            throw new TransformerException(TransformerException::ERR_MSG_FILE_NOT_EXISTS);
-        }
         $content = '<?php if (isset($_SESSION["jsVariables"])) { echo $_SESSION["jsVariables"]; unset($_SESSION["jsVariables"]); } ?>';
         file_put_contents($file, $content);
         $_SESSION['jsVariables'] = "<script>{$js}</script>";

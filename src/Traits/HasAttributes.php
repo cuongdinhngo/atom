@@ -117,4 +117,24 @@ trait HasAttributes
     {
         $this->attributes = $data;
     }
+
+    /**
+     * Set attributes
+     *
+     * @param [type] $data [description]
+     */
+    public function setAttributes($data)
+    {
+        $this->mapAttributes($data);
+    }
+
+    /**
+     * Get attributes
+     *
+     * @return mixed
+     */
+    public function getAttributes()
+    {
+        return $this->attributes;
+    }
 }
