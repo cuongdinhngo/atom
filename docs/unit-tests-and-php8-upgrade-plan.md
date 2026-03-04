@@ -303,7 +303,7 @@ public function testEncodeAndDecode()
 ### 2.8 URL & Signature Verification
 
 **File**: `test/Http/UrlTest.php`
-**Source**: `src/Url.php`
+**Source**: `src/Http/Url.php`
 
 | Test | What It Verifies |
 |------|-----------------|
@@ -450,7 +450,7 @@ if ($type === null || $type->isBuiltin()) {
 - `strpos()` truthy → `str_contains()`
 - `substr() ==` → `str_starts_with()`
 
-**File**: `src/Url.php`
+**File**: `src/Http/Url.php`
 - `$signature == ...` → `hash_equals()`
 
 ```bash

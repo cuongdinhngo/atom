@@ -69,9 +69,10 @@ class HelpersTest extends TestCase
         $this->assertEquals(48, gps2Num('48'));
     }
 
-    public function testGps2NumWithZeroDenominator()
+    public function testGps2NumWithZeroDenominatorThrowsError()
     {
-        // PHP 8 throws DivisionByZeroError for float(0) / float(0)
+        // PHP 8.0+ throws DivisionByZeroError for float division by zero (0.0 / 0.0)
+        // In PHP 7.x this returned NAN, but PHP 8 made this stricter
         $this->expectException(\DivisionByZeroError::class);
         gps2Num('0/0');
     }
