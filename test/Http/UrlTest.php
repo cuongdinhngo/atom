@@ -46,18 +46,19 @@ class UrlTest extends TestCase
         $this->assertEquals('http://', $ref->invoke($url));
     }
 
-    public function testProtocolReturnsHttps()
+    public function testProtocolAlwaysReturnsHttpDueToStriposMatch()
     {
+        // BUG: protocol() uses stripos($protocol, 'http') === 0, which matches
+        // both 'HTTP/1.1' and 'HTTPS/1.1' since both start with 'http'.
+        // This means it always returns 'http://', never 'https://'.
         $_SERVER['SERVER_PROTOCOL'] = 'HTTPS/1.1';
         $url = new Url();
 
         $ref = new \ReflectionMethod($url, 'protocol');
         $ref->setAccessible(true);
 
-        // Note: the protocol() method checks for 'http' at position 0 via stripos
-        // 'HTTPS' starts with 'http' so it returns 'http://'
         $result = $ref->invoke($url);
-        $this->assertStringStartsWith('http', $result);
+        $this->assertEquals('http://', $result);
     }
 
     // --- Domain ---
