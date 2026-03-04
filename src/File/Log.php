@@ -35,7 +35,7 @@ class Log
 
         $logFile = LOG_PATH . env('DEV_LOG_FILE');
 
-        if (!file_exists($logFile))
+        if (!is_dir(LOG_PATH))
         {
             mkdir(LOG_PATH, 0777, true);
         }
