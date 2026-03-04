@@ -18,7 +18,7 @@ if (!function_exists('config')) {
         $fileName = array_shift($keys);
         $searchFile = searchFile(CONFIG_PATH . $fileName . '.*');
 
-        if (strpos($searchFile, '.ini')) {
+        if (str_contains($searchFile, '.ini')) {
             $envs = parse_ini_file($searchFile, false);
             foreach ($envs as $env => $value) {
                 putenv("{$env}={$value}");
@@ -88,7 +88,7 @@ if (!function_exists('getHeaders'))
         $headers = [];
         foreach ($_SERVER as $name => $value)
         {
-            if (substr($name, 0, 5) == 'HTTP_')
+            if (str_starts_with($name, 'HTTP_'))
             {
                 $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
             }
@@ -102,7 +102,7 @@ if (!function_exists('isApi'))
     function isApi()
     {
         $headers = getHeaders();
-        return (bool) strpos($_SERVER['REQUEST_URI'], 'api') || (isset($headers['Content-Type']) && $headers['Content-Type'] == 'application/json');
+        return str_contains($_SERVER['REQUEST_URI'], 'api') || (isset($headers['Content-Type']) && $headers['Content-Type'] === 'application/json');
     }
 }
 

@@ -29,7 +29,7 @@ class ValidatorTest extends TestCase
     public function testGetRuleWithoutParams()
     {
         $result = ValidatorStub::getRule('required');
-        $this->assertEquals(['required'], $result);
+        $this->assertEquals(['required', null], $result);
     }
 
     public function testGetRuleWithParams()

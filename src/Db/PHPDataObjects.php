@@ -68,8 +68,8 @@ abstract class PHPDataObjects
     public function execute($query)
     {
         $this->sth = $this->db->prepare($query);
-        foreach ($this->params as $key => &$value) {
-            $this->sth->bindParam(':' .$key, $value);
+        foreach ($this->params as $key => $value) {
+            $this->sth->bindValue(':' .$key, $value);
         }
         $this->sth->execute();
         return $this->sth;
@@ -89,12 +89,12 @@ abstract class PHPDataObjects
                 throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
                 break;
             case 2:
-                list($key, $value) = $condition;
+                [$key, $value] = $condition;
                 $this->setParams([$key => $value]);
                 return $key . ' = :' . $key;
                 break;
             case 3:
-                list($key, $operator, $value) = $condition;
+                [$key, $operator, $value] = $condition;
                 $operator = strtoupper($operator);
                 $this->setParams([$key => $value]);
                 return $key . ' '. $operator .' :' . $key;

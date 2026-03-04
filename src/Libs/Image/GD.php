@@ -15,7 +15,7 @@ class GD
      */
     public function create(string $storagePath, string $file, string $imageType)
     {
-        list($width, $height) = getimagesize($file);
+        [$width, $height] = getimagesize($file);
         try {
             $dstImg = imagecreatetruecolor($width, $height);
             $srcImg = $this->imageCreateFromType($imageType, $file);
@@ -36,7 +36,7 @@ class GD
      */
     public function createAndResize(string $storagePath, string $file, string $imageType, array $size)
     {
-        list($width, $height, $widthOrg, $heightOrg) = $this->resizeInfo($file, $size);
+        [$width, $height, $widthOrg, $heightOrg] = $this->resizeInfo($file, $size);
 
         try {
             $dstImg = imagecreatetruecolor($width, $height);
@@ -56,11 +56,11 @@ class GD
      */
     public function resizeInfo(string $file, array $size)
     {
-        list($width, $height) = $size;
+        [$width, $height] = $size;
         if (false === is_numeric($width) || false === is_numeric($height)) {
             throw new ImageException(ImageException::ERR_MSG_BAD_REQUEST);
         }
-        list($widthOrg, $heightOrg) = getimagesize($file);
+        [$widthOrg, $heightOrg] = getimagesize($file);
 
         $ratioOrg = $widthOrg / $heightOrg;
         if ($width / $height > $ratioOrg) {
@@ -80,22 +80,12 @@ class GD
      */
     protected function imageCreateFromType(string $type, string $file)
     {
-        switch ($type) {
-            case 'png':
-                $image = imagecreatefrompng($file);
-                break;
-            case 'jpg':
-            case 'jpeg':
-                $image = imagecreatefromjpeg($file);
-                break;
-            case 'gif':
-                $image = imagecreatefromgif($file);
-                break;
-            default:
-                throw new ImageException(ImageException::ERR_MSG_UNKNOW_FILE);
-        }
-
-        return $image;
+        return match ($type) {
+            'png' => imagecreatefrompng($file),
+            'jpg', 'jpeg' => imagecreatefromjpeg($file),
+            'gif' => imagecreatefromgif($file),
+            default => throw new ImageException(ImageException::ERR_MSG_UNKNOW_FILE),
+        };
     }
 
     /**
@@ -107,17 +97,11 @@ class GD
      */
     protected function outputImageByType($image, $path, $type)
     {
-        switch ($type) {
-            case 'png':
-                imagepng($image, $path);
-                break;
-            case 'jpg':
-            case 'jpeg':
-                imagejpeg($image, $path);
-                break;
-            case 'gif':
-                imagegif($image, $path);
-                break;
-        }
+        match ($type) {
+            'png' => imagepng($image, $path),
+            'jpg', 'jpeg' => imagejpeg($image, $path),
+            'gif' => imagegif($image, $path),
+            default => null,
+        };
     }
 }

@@ -11,7 +11,7 @@ use DateTime;
  * JSON Web Token implementation, based on this spec:
  * https://tools.ietf.org/html/rfc7519
  *
- * PHP version 5
+ * PHP version 8.2+
  *
  * @category Authentication
  * @package  Authentication_JWT
@@ -79,7 +79,7 @@ class JWT
         if (count($tks) != 3) {
             throw new UnexpectedValueException('Wrong number of segments');
         }
-        list($headb64, $bodyb64, $cryptob64) = $tks;
+        [$headb64, $bodyb64, $cryptob64] = $tks;
         if (null === ($header = static::jsonDecode(static::urlsafeB64Decode($headb64)))) {
             throw new UnexpectedValueException('Invalid header encoding');
         }
@@ -192,7 +192,7 @@ class JWT
         if (empty(static::$supported_algs[$alg])) {
             throw new DomainException('Algorithm not supported');
         }
-        list($function, $algorithm) = static::$supported_algs[$alg];
+        [$function, $algorithm] = static::$supported_algs[$alg];
         switch($function) {
             case 'hash_hmac':
                 return hash_hmac($algorithm, $msg, $key, true);
@@ -226,7 +226,7 @@ class JWT
             throw new DomainException('Algorithm not supported');
         }
 
-        list($function, $algorithm) = static::$supported_algs[$alg];
+        [$function, $algorithm] = static::$supported_algs[$alg];
         switch($function) {
             case 'openssl':
                 $success = openssl_verify($msg, $signature, $key, $algorithm);
@@ -242,18 +242,7 @@ class JWT
             case 'hash_hmac':
             default:
                 $hash = hash_hmac($algorithm, $msg, $key, true);
-                if (function_exists('hash_equals')) {
-                    return hash_equals($signature, $hash);
-                }
-                $len = min(static::safeStrlen($signature), static::safeStrlen($hash));
-
-                $status = 0;
-                for ($i = 0; $i < $len; $i++) {
-                    $status |= (ord($signature[$i]) ^ ord($hash[$i]));
-                }
-                $status |= (static::safeStrlen($signature) ^ static::safeStrlen($hash));
-
-                return ($status === 0);
+                return hash_equals($signature, $hash);
         }
     }
 
@@ -268,21 +257,7 @@ class JWT
      */
     public static function jsonDecode($input)
     {
-        if (version_compare(PHP_VERSION, '5.4.0', '>=') && !(defined('JSON_C_VERSION') && PHP_INT_SIZE > 4)) {
-            /** In PHP >=5.4.0, json_decode() accepts an options parameter, that allows you
-             * to specify that large ints (like Steam Transaction IDs) should be treated as
-             * strings, rather than the PHP default behaviour of converting them to floats.
-             */
-            $obj = json_decode($input, false, 512, JSON_BIGINT_AS_STRING);
-        } else {
-            /** Not all servers will support that, however, so for older versions we must
-             * manually detect large ints in the JSON string and quote them (thus converting
-             *them to strings) before decoding, hence the preg_replace() call.
-             */
-            $max_int_length = strlen((string) PHP_INT_MAX) - 1;
-            $json_without_bigints = preg_replace('/:\s*(-?\d{'.$max_int_length.',})/', ': "$1"', $input);
-            $obj = json_decode($json_without_bigints);
-        }
+        $obj = json_decode($input, false, 512, JSON_BIGINT_AS_STRING);
 
         if ($errno = json_last_error()) {
             static::handleJsonError($errno);
@@ -373,9 +348,6 @@ class JWT
      */
     private static function safeStrlen($str)
     {
-        if (function_exists('mb_strlen')) {
-            return mb_strlen($str, '8bit');
-        }
-        return strlen($str);
+        return mb_strlen($str, '8bit');
     }
 }

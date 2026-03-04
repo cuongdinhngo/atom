@@ -23,15 +23,9 @@ class StorageFactory
      */
     public function init()
     {
-        switch ($this->storageConfig["driver"]) {
-            case 'local':
-                return new LocalService($this->storageConfig["path"]);
-                break;
-            case 's3':
-                # code...
-                break;
-            default:
-                throw new StorageException(StorageException::ERR_MSG_NOT_FOUND);
-        }
+        return match ($this->storageConfig["driver"]) {
+            'local' => new LocalService($this->storageConfig["path"]),
+            default => throw new StorageException(StorageException::ERR_MSG_NOT_FOUND),
+        };
     }
 }

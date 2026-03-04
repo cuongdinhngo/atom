@@ -6,10 +6,10 @@ use Atom\Validation\Exception\ValidationException;
 
 trait Validator
 {
-    static $errors = [];
-    static $inputRules = [];
-    static $attributes = [];
-    static $input;
+    static array $errors = [];
+    static array $inputRules = [];
+    static array $attributes = [];
+    static mixed $input = null;
 
     /**
      * Excute validation
@@ -81,7 +81,7 @@ trait Validator
         $rules = array_filter(explode('|', $rules));
         $errors = [];
         foreach ($rules as $rule) {
-            list($rule, $params) = static::getRule($rule);
+            [$rule, $params] = static::getRule($rule);
             $error = call_user_func_array([__NAMESPACE__.'\Validator', $rule], [$value, $attribute, $messages[$rule], $params]);
             if (!empty($error)) {
                 $errors[] = $error;
@@ -130,7 +130,7 @@ trait Validator
     {
         $rules = array_filter(explode('|', $rules));
         foreach ($rules as $key => $rule) {
-            list($inputRule, $params) = static::getRule($rule);
+            [$inputRule, $params] = static::getRule($rule);
             static::setInputRules($inputRule);
         }
     }
@@ -160,7 +160,7 @@ trait Validator
     public static function getRule(string $rule)
     {
         preg_match("/(.+)\:(.+)/", $rule, $output);
-        return $output && $output[1] ? [$output[1], $output[2]]: [$rule];
+        return $output && $output[1] ? [$output[1], $output[2]]: [$rule, null];
     }
 
     /**
@@ -205,9 +205,8 @@ trait Validator
      * Date_format Validation
      * @return string
      */
-    public static function date_format()
+    public static function date_format(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         return date_create_from_format($params, $value) !== false ? '' : vsprintf($message, [$attribute, $params]);
     }
 
@@ -215,11 +214,10 @@ trait Validator
      * Required_if Validation
      * @return string
      */
-    public static function required_if()
+    public static function required_if(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         $input = static::getInput();
-        list($field, $fielValue) = explode(',', $params);
+        [$field, $fielValue] = explode(',', $params);
         return (!isset($input[$field])) ? '' : vsprintf($message, [$attribute, $params]);
     }
 
@@ -227,9 +225,8 @@ trait Validator
      * After Validation
      * @return string
      */
-    public static function after()
+    public static function after(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         return (strtotime($value) !== false) && (strtotime($value) > strtotime($params)) ? '' : vsprintf($message, [$attribute, $params]);
     }
 
@@ -237,9 +234,8 @@ trait Validator
      * Before Validation
      * @return string
      */
-    public static function before()
+    public static function before(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         return (strtotime($value) !== false) && (strtotime($value) < strtotime($params)) ? '' : vsprintf($message, [$attribute, $params]);
     }
 
@@ -247,9 +243,8 @@ trait Validator
      * Image Validation
      * @return string
      */
-    public static function image()
+    public static function image(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         $info = pathinfo($value['name']);
         return in_array($info["extension"], ['jpeg', 'png', 'bmp', 'gif', 'svg']) ? '' : vsprintf($message, [$attribute, $params]);
     }
@@ -258,9 +253,8 @@ trait Validator
      * Date Validation
      * @return string
      */
-    public static function date()
+    public static function date(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         return strtotime($value) !== false ? '' : vsprintf($message, [$attribute, $params]);
     }
 
@@ -268,9 +262,8 @@ trait Validator
      * Array Validation
      * @return string
      */
-    public static function array()
+    public static function array(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         return is_array($value) ? '' : vsprintf($message, [$attribute, $params]);
     }
 
@@ -278,29 +271,26 @@ trait Validator
      * Min Validation
      * @return string
      */
-    public static function min()
+    public static function min(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
-        return $params < $value ? '' : vsprintf($message, [$attribute, $params]);
+        return (float)$value > (float)$params ? '' : vsprintf($message, [$attribute, $params]);
     }
 
     /**
      * Max Validation
      * @return string
      */
-    public static function max()
+    public static function max(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
-        return $params > $value ? '' : vsprintf($message, [$attribute, $params]);
+        return (float)$value < (float)$params ? '' : vsprintf($message, [$attribute, $params]);
     }
 
     /**
      * In_array Validation
      * @return string
      */
-    public static function in_array()
+    public static function in_array(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         return in_array($value, explode(',', $params)) ? '' : vsprintf($message, [$attribute, $params]);
     }
 
@@ -308,20 +298,18 @@ trait Validator
      * Between Validation
      * @return string
      */
-    public static function between()
+    public static function between(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
-        list($min, $max) = explode(',', $params);
-        return $value >= $min && $value <= $max ? '' : vsprintf($message, [$attribute, $min, $max]);
+        [$min, $max] = explode(',', $params);
+        return (float)$value >= (float)$min && (float)$value <= (float)$max ? '' : vsprintf($message, [$attribute, $min, $max]);
     }
 
     /**
      * Required Validation
      * @return string
      */
-    public static function required()
+    public static function required(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         return !empty($value) ? '' : vsprintf($message, [$attribute]);
     }
 
@@ -329,9 +317,8 @@ trait Validator
      * String Validation
      * @return string
      */
-    public static function string()
+    public static function string(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         return is_string($value) ? '' : vsprintf($message, [$attribute]);
     }
 
@@ -339,9 +326,8 @@ trait Validator
      * Email Validation
      * @return string
      */
-    public static function email()
+    public static function email(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         return (bool) filter_var($value, FILTER_VALIDATE_EMAIL) ? '' : vsprintf($message, [$attribute]);
     }
 
@@ -349,9 +335,8 @@ trait Validator
      * Integer Validation
      * @return string
      */
-    public static function integer()
+    public static function integer(mixed $value, string $attribute, string $message, mixed $params = null): string
     {
-        list($value, $attribute, $message, $params) = func_get_args();
         return filter_var($value, FILTER_VALIDATE_INT) ? '' : vsprintf($message, [$attribute]);
     }
 }

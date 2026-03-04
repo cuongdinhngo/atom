@@ -125,16 +125,11 @@ class Request implements ArrayAccess
      */
     public function getParametersByMethod()
     {
-        switch ($this->method) {
-            case 'GET':
-                return $this->get;
-                break;
-            case 'POST':
-            case 'PUT':
-            case 'PATCH':
-                return $this->post;
-                break;
-        }
+        return match ($this->method) {
+            'GET' => $this->get,
+            'POST', 'PUT', 'PATCH' => $this->post,
+            default => null,
+        };
     }
 
     /**
@@ -143,7 +138,7 @@ class Request implements ArrayAccess
      */
     public function extractUriParameters()
     {
-        parse_str(parse_url($this->uri, PHP_URL_QUERY), $params);
+        parse_str(parse_url($this->uri, PHP_URL_QUERY) ?? '', $params);
         return array_merge($params, $this->parseUriParams());
     }
 
@@ -240,7 +235,7 @@ class Request implements ArrayAccess
      * @access public
      * @abstracting ArrayAccess
      */
-    public function offsetSet($offset,$value) {
+    public function offsetSet(mixed $offset, mixed $value): void {
         if (is_null($offset)) {
             $this->request[] = $value;
         } else {
@@ -256,7 +251,7 @@ class Request implements ArrayAccess
      * @return boolean
      * @abstracting ArrayAccess
      */
-    public function offsetExists($offset) {
+    public function offsetExists(mixed $offset): bool {
         return isset($this->request[$offset]);
     }
 
@@ -267,7 +262,7 @@ class Request implements ArrayAccess
      * @access public
      * @abstracting ArrayAccess
      */
-    public function offsetUnset($offset) {
+    public function offsetUnset(mixed $offset): void {
         if ($this->offsetExists($offset)) {
             unset($this->request[$offset]);
         }
@@ -281,7 +276,7 @@ class Request implements ArrayAccess
      * @return mixed
      * @abstracting ArrayAccess
      */
-    public function offsetGet($offset) {
+    public function offsetGet(mixed $offset): mixed {
         return $this->offsetExists($offset) ? $this->request[$offset] : null;
     }
 }

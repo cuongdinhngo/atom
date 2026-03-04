@@ -10,7 +10,7 @@ use Atom\Models\Model;
  */
 class TestModel extends Model
 {
-    protected $table = 'test_table';
+    protected ?string $table = 'test_table';
 
     public function __construct()
     {
