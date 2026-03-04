@@ -89,7 +89,7 @@ class CSV
                 throw new CsvException(CsvException::ERR_MSG_INVALID_DATA);
             }
 
-            $line = array_map(function ($item) {
+            $line = array_map(function ($item) use ($nullable) {
                 return (($nullable || static::$setNull) && empty($item)) ? null : trim($item);
             }, $line);
 

@@ -163,6 +163,7 @@ class Request implements ArrayAccess
                 return $this->mapParams($path, $route);
             }
         }
+        return [];
     }
 
     /**
