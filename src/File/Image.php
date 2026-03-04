@@ -35,7 +35,7 @@ class Image extends File
      */
     protected function upload(string $directory, array $file, string $fileName = null)
     {
-        list($storagePath, $core, $imageType) = $this->process($directory, $file, $fileName);
+        [$storagePath, $core, $imageType] = $this->process($directory, $file, $fileName);
         $this->gd->create($storagePath, $core, $imageType);
         return end(explode('/', $storagePath));
     }
@@ -54,7 +54,7 @@ class Image extends File
             throw new ImageException(ImageException::ERR_MSG_BAD_REQUEST);
         }
 
-        list($storagePath, $core, $imageType) = $this->process($directory, $file, $fileName);
+        [$storagePath, $core, $imageType] = $this->process($directory, $file, $fileName);
         $this->gd->createAndResize($storagePath, $core, $imageType, $size);
         return end(explode('/', $storagePath));
     }

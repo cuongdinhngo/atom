@@ -45,7 +45,7 @@ trait Auth
             throw new GuardException(GuardException::ERR_MSG_INVALID_GUARD_KEYS);
         }
 
-        list($guardId, $guardPasswd) = $guards;
+        [$guardId, $guardPasswd] = $guards;
         empty($response) ? extract(config('app.auth.response')) : extract($response);
         $condition = [
             [$guardId, '=', $request[$guardId]],

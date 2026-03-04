@@ -6,28 +6,10 @@ use Atom\Template\Exception\TemplateException;
 
 class Template
 {
-    /**
-     * Templates
-     * @var array
-     */
-    protected $templates;
-
-    /**
-     * Data
-     * @var array
-     */
-    protected $data;
-
-    /**
-     * Template Construct
-     * @param array $templates Templates
-     * @param array $data      Data
-     */
-    public function __construct($templates = [], $data = [])
-    {
-        $this->templates = $templates;
-        $this->data = $data;
-    }
+    public function __construct(
+        protected array $templates = [],
+        protected array $data = [],
+    ) {}
 
     /**
      * Set templates

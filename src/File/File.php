@@ -44,7 +44,7 @@ class File extends Globals
      */
     protected function extractFileName(string $path, string $fileName = null)
     {
-        list($name, $extension) = explode('.', $fileName);
+        [$name, $extension] = explode('.', $fileName);
         if (empty($fileName)) {
             $fileName = $this->name();
             $extension = pathinfo($fileName)["extension"];
@@ -185,7 +185,7 @@ class File extends Globals
         $this->storage->checkDirectory($fullDirectory);
 
         $core = $this->parse($file)->core();
-        list($fileName, $imageType) = $this->extractFileName($directory, $fileName);
+        [$fileName, $imageType] = $this->extractFileName($directory, $fileName);
         $storagePath = $fullDirectory . '/' . $fileName;
 
         $this->isExist($storagePath);
@@ -201,7 +201,7 @@ class File extends Globals
      */
     protected function upload(string $directory, array $file, string $fileName = null)
     {
-        list($storagePath, $core, $imageType) = $this->process($directory, $file, $fileName);
+        [$storagePath, $core, $imageType] = $this->process($directory, $file, $fileName);
         $this->storage->upload($storagePath, $core);
     }
 }

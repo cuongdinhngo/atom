@@ -166,7 +166,7 @@ class Url extends Globals
     protected function hasCorrectSignature($signature, $params)
     {
         unset($params['signature']);
-        return $signature == $this->generateSignature($this->extractUri(), $params);
+        return hash_equals($this->generateSignature($this->extractUri(), $params), $signature);
     }
 
     /**

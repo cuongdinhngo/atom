@@ -2,27 +2,37 @@
 
 ## Overview
 
-The Atom Framework currently requires `php: ^7.0` and `phpunit/phpunit: ^6.1`. PHP 7.x reached end-of-life in November 2022 and no longer receives security patches. This document outlines a comprehensive plan to upgrade to **PHP 8.2** with full code modernization.
+The Atom Framework currently requires `php: ^7.0 || ^8.0` and `phpunit/phpunit: ^9.5`. Some partial upgrades have already been applied (PHPUnit 9.5, modern `setUp(): void` signatures), but critical runtime-breaking issues remain and PHP 8 language features are not yet adopted. This document outlines the remaining work to complete the upgrade to **PHP 8.2**.
 
-**Target**: PHP 8.2+
+**Current State**: PHP ^7.0 || ^8.0, PHPUnit ^9.5
+**Target**: PHP ^8.2, PHPUnit ^10.0
 **Scope**: Full modernization (breaking changes, new features, refactored patterns)
 **Versioning**: This constitutes a **major version bump** (e.g., v3.0)
+
+### Already Completed
+
+- `setUp(): void` / `tearDown(): void` return types in all test files
+- Most test assertions already use modern methods (`assertStringContainsString`, `assertMatchesRegularExpression`)
+- Base `TestCase` class with `$_SERVER` isolation
 
 ---
 
 ## Table of Contents
 
 1. [Summary of Changes](#1-summary-of-changes)
-2. [Step 1 — Update Composer Dependencies](#2-step-1--update-composer-dependencies)
-3. [Step 2 — Fix Breaking Changes](#3-step-2--fix-breaking-changes)
-4. [Step 3 — Fix Type Coercion & Loose Comparisons](#4-step-3--fix-type-coercion--loose-comparisons)
-5. [Step 4 — Refactor Legacy Patterns](#5-step-4--refactor-legacy-patterns)
-6. [Step 5 — Adopt PHP 8 Features](#6-step-5--adopt-php-8-features)
-7. [Step 6 — Migrate Tests to PHPUnit 10](#7-step-6--migrate-tests-to-phpunit-10)
-8. [Step 7 — Verification](#8-step-7--verification)
-9. [Drawbacks & Risks](#9-drawbacks--risks)
-10. [Benefits](#10-benefits)
-11. [References](#11-references)
+2. [Phase 1 — Composer + Runtime-Breaking Fixes](#2-phase-1--composer--runtime-breaking-fixes)
+3. [Phase 2 — Replace func_get_args() Patterns](#3-phase-2--replace-func_get_args-patterns)
+4. [Phase 3 — Fix Type Coercion & Loose Comparisons](#4-phase-3--fix-type-coercion--loose-comparisons)
+5. [Phase 4 — Switch to Match Conversions](#5-phase-4--switch-to-match-conversions)
+6. [Phase 5 — Constructor Promotion](#6-phase-5--constructor-promotion)
+7. [Phase 6 — JWT Legacy Cleanup](#7-phase-6--jwt-legacy-cleanup)
+8. [Phase 7 — Syntax Modernization & Return Types](#8-phase-7--syntax-modernization--return-types)
+9. [Phase 8 — Typed Class Properties](#9-phase-8--typed-class-properties)
+10. [Phase 9 — Optional PHP 8.2 Features](#10-phase-9--optional-php-82-features)
+11. [Verification](#11-verification)
+12. [Drawbacks & Risks](#12-drawbacks--risks)
+13. [Benefits](#13-benefits)
+14. [References](#14-references)
 
 ---
 
@@ -32,45 +42,47 @@ The Atom Framework currently requires `php: ^7.0` and `phpunit/phpunit: ^6.1`. P
 |----------|------|---------------|--------|
 | CRITICAL | Composer dependencies | `composer.json` | Small |
 | CRITICAL | Reflection API removal | `src/Container/Container.php` | Small |
-| HIGH | Loose comparisons & type coercion | `src/Helpers/helpers.php`, `src/Url.php`, `src/Validation/Validator.php` | Medium |
-| HIGH | Refactor `func_get_args()` patterns | `src/Validation/Validator.php`, `src/Db/Database.php` | Large |
-| MEDIUM | PHPUnit 10 test migration | `test/` directory | Medium |
-| LOW | PHP 8 feature adoption | All `src/` files | Medium |
+| CRITICAL | Validator `getRule()` bug | `src/Validation/Validator.php` | Small |
+| CRITICAL | PHPUnit 10 config | `phpunit.xml` | Small |
+| HIGH | Replace `func_get_args()` patterns | `src/Validation/Validator.php`, `src/Db/Database.php` | Large |
+| HIGH | Loose comparisons & type coercion | `src/Helpers/helpers.php`, `src/Http/Url.php`, `src/Validation/Validator.php` | Medium |
+| HIGH | Security: timing-safe signature comparison | `src/Http/Url.php` | Small |
+| HIGH | Reference in foreach | `src/Db/PHPDataObjects.php` | Small |
+| MEDIUM | Switch → match conversions | `src/Db/Driver.php`, `src/Http/Request.php`, `src/Storage/StorageFactory.php`, `src/Libs/Image/GD.php` | Medium |
+| MEDIUM | Constructor promotion | `src/Db/Driver.php`, `src/Template/Template.php`, `src/Storage/` | Medium |
+| MEDIUM | JWT legacy PHP 5 cleanup | `src/Libs/JWT/JWT.php` | Small |
+| LOW | `list()` → `[]` destructuring | Multiple files (~35 occurrences) | Medium |
+| LOW | Return type declarations | All `src/` files (~150+ methods) | Large |
+| LOW | Typed class properties | All `src/` files (~15 classes) | Medium |
 
 ---
 
-## 2. Step 1 — Update Composer Dependencies
+## 2. Phase 1 — Composer + Runtime-Breaking Fixes
+
+> **These changes must land together.** Updating the PHP constraint without fixing `getClass()` and the `getRule()` bug will crash the framework at runtime.
+
+### 2.1 Update Composer Dependencies
 
 **File**: `composer.json`
 
-### Changes
-
 ```diff
   "require": {
--     "php": "^7.0"
+-     "php": "^7.0 || ^8.0"
 +     "php": "^8.2"
   },
   "require-dev": {
--     "phpunit/phpunit": "^6.1"
+-     "phpunit/phpunit": "^9.5"
 +     "phpunit/phpunit": "^10.0"
   }
 ```
 
-### Actions
+**Actions**: Update constraints, run `composer update`, resolve any dependency conflicts.
 
-1. Update version constraints as shown above
-2. Run `composer update`
-3. Resolve any dependency conflicts
-
----
-
-## 3. Step 2 — Fix Breaking Changes
-
-### 3.1 `ReflectionParameter::getClass()` Removed (PHP 8.1)
+### 2.2 Fix `ReflectionParameter::getClass()` Removal (PHP 8.1)
 
 **File**: `src/Container/Container.php` (Line ~93)
 
-`ReflectionParameter::getClass()` was deprecated in PHP 8.0 and **removed in PHP 8.1**. The dependency injection container will crash without this fix.
+`ReflectionParameter::getClass()` was deprecated in PHP 8.0 and **removed in PHP 8.1**. The DI container will crash without this fix.
 
 ```php
 // BEFORE (broken on PHP 8.1+)
@@ -81,25 +93,115 @@ if ($dependency === NULL) {
 
 // AFTER
 $type = $parameter->getType();
-if ($type === null || $type->isBuiltin()) {
+if ($type === null || !$type instanceof \ReflectionNamedType || $type->isBuiltin()) {
     // handle non-class dependency
 } else {
-    $dependency = new ReflectionClass($type->getName());
-    // resolve class dependency
+    $dependencies[] = $this->get($type->getName());
 }
 ```
 
-### 3.2 Stricter Type Juggling (PHP 8.0)
+**Note**: Guard against `ReflectionUnionType` by checking `$type instanceof ReflectionNamedType` before calling `getName()`.
 
-PHP 8 changed how `0 == "string"` evaluates (now `false` instead of `true`). Audit all `==` comparisons between mixed types.
+### 2.3 Fix `Validator::getRule()` Return Value Bug
 
-**Affected areas**:
-- `src/Validation/Validator.php` — numeric comparisons in validation rules
-- `src/Db/Database.php` — condition checks
+**File**: `src/Validation/Validator.php` (Line ~160)
+
+`getRule()` returns a 1-element array for rules without params, but callers do `list($rule, $params) = getRule(...)` which triggers "Undefined array key 1" on PHP 8.
+
+```php
+// BEFORE
+return $output && $output[1] ? [$output[1], $output[2]] : [$rule];
+
+// AFTER
+return $output && $output[1] ? [$output[1], $output[2]] : [$rule, null];
+```
+
+### 2.4 Update `phpunit.xml` for PHPUnit 10
+
+**File**: `phpunit.xml`
+
+Remove `verbose="true"` attribute (removed in PHPUnit 10, causes deprecation warning).
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Atom Test Suite">
+            <directory suffix="Test.php">test</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
+```
+
+**Verify**: `composer update && ./vendor/bin/phpunit` — all tests pass.
 
 ---
 
-## 4. Step 3 — Fix Type Coercion & Loose Comparisons
+## 3. Phase 2 — Replace `func_get_args()` Patterns
+
+This is the **largest change** in the migration. ~21 methods across two files use `func_get_args()` / `func_num_args()` instead of declared parameters.
+
+### 3.1 Validator Rule Methods (`src/Validation/Validator.php`)
+
+15 methods follow this pattern:
+
+```php
+// BEFORE
+public static function required()
+{
+    list($value, $attribute, $message, $params) = func_get_args();
+    // validation logic
+}
+
+// AFTER
+public static function required(
+    mixed $value,
+    string $attribute,
+    string $message,
+    mixed $params = null
+): string {
+    // validation logic
+}
+```
+
+**Methods to refactor**: `required`, `required_if`, `email`, `integer`, `string`, `min`, `max`, `between`, `in_array`, `date`, `date_format`, `after`, `before`, `image`, `array`
+
+The call site at `checkValidation()` (line ~85) already passes 4 arguments via `call_user_func_array` — no change needed there.
+
+### 3.2 Database Query Methods (`src/Db/Database.php`)
+
+6 methods use `func_num_args()` for argument validation:
+
+```php
+// BEFORE
+public function innerJoin()
+{
+    if (func_num_args() != 3) {
+        throw new DatabaseException("...");
+    }
+    list($joinTable, $tableCond, $joinCond) = func_get_args();
+}
+
+// AFTER
+public function innerJoin(
+    string $joinTable,
+    string $tableCond,
+    string $joinCond
+): static {
+    // join logic (PHP enforces parameter count natively)
+}
+```
+
+**Methods to refactor**: `innerJoin`, `leftJoin`, `rightJoin`, `having`, `orderBy`, `orWhere`
+
+**Verify**: `./vendor/bin/phpunit`
+
+---
+
+## 4. Phase 3 — Fix Type Coercion & Loose Comparisons
 
 ### 4.1 `strpos()` Truthy Checks
 
@@ -113,93 +215,39 @@ PHP 8 changed how `0 == "string"` evaluates (now `false` instead of `true`). Aud
 
 ### 4.2 Signature Verification (Security Fix)
 
-**File**: `src/Url.php` (Line ~169)
+**File**: `src/Http/Url.php` (Line ~169)
 
 ```php
 // BEFORE (timing attack vulnerable)
-return $signature == $this->generateSignature(...);
+return $signature == $this->generateSignature($this->extractUri(), $params);
 
 // AFTER (constant-time comparison)
-return hash_equals($this->generateSignature(...), $signature);
+return hash_equals($this->generateSignature($this->extractUri(), $params), $signature);
 ```
 
-### 4.3 Validation Numeric Comparisons
+### 4.3 Session Status Comparison
+
+**File**: `src/Http/Globals.php` (Line ~109)
+
+```php
+// BEFORE
+if (session_status() == PHP_SESSION_NONE) {
+
+// AFTER
+if (session_status() === PHP_SESSION_NONE) {
+```
+
+### 4.4 Validation Numeric Comparisons
 
 **File**: `src/Validation/Validator.php`
 
 | Line | Code | Fix |
 |------|------|-----|
-| ~284 | `return $params < $value` | Cast to numeric: `return (float)$value > (float)$params` |
-| ~294 | `return $params > $value` | Cast to numeric: `return (float)$value < (float)$params` |
-| ~315 | `return $value >= $min && $value <= $max` | Cast to numeric types explicitly |
+| ~284 | `return $params < $value` | Cast: `return (float)$value > (float)$params` |
+| ~294 | `return $params > $value` | Cast: `return (float)$value < (float)$params` |
+| ~315 | `return $value >= $min && $value <= $max` | Cast all operands to `(float)` |
 
----
-
-## 5. Step 4 — Refactor Legacy Patterns
-
-### 5.1 Replace `func_get_args()` with Typed Parameters
-
-This is the **largest change** in the migration. ~30 methods across two files use `func_get_args()` instead of declared parameters.
-
-#### Validation Rules (`src/Validation/Validator.php`)
-
-~18 methods follow this pattern:
-
-```php
-// BEFORE
-public function ruleRequired()
-{
-    list($value, $attribute, $message, $params) = func_get_args();
-    // validation logic
-}
-
-// AFTER
-public function ruleRequired(
-    mixed $value,
-    string $attribute,
-    string $message,
-    mixed $params = null
-): bool {
-    // validation logic
-}
-```
-
-**Full list of methods to refactor**:
-- `ruleRequired`, `ruleEmail`, `ruleNumber`, `ruleUrl`
-- `ruleMin`, `ruleMax`, `ruleBetween`
-- `ruleIn`, `ruleNotIn`
-- `ruleDate`, `ruleDateFormat`
-- `ruleRegex`, `ruleAlpha`, `ruleAlphaNum`
-- `ruleConfirmed`, `ruleSame`, `ruleDifferent`
-- All other `rule*` methods
-
-#### Database Join Methods (`src/Db/Database.php`)
-
-~12 methods use `func_num_args()` for argument validation:
-
-```php
-// BEFORE
-public function join()
-{
-    if (func_num_args() != 3) {
-        throw new DatabaseException("...");
-    }
-    list($joinTable, $tableCond, $joinCond) = func_get_args();
-}
-
-// AFTER
-public function join(
-    string $joinTable,
-    string $tableCond,
-    string $joinCond
-): static {
-    // join logic
-}
-```
-
-**Methods to refactor**: `join`, `leftJoin`, `rightJoin`, `crossJoin`, `where`, `orWhere`, `having`, `orderBy`, and related query builder methods.
-
-### 5.2 Fix Reference in foreach
+### 4.5 Fix Reference in foreach
 
 **File**: `src/Db/PHPDataObjects.php` (Line ~71)
 
@@ -215,201 +263,238 @@ foreach ($this->params as $key => $value) {
 }
 ```
 
+**Verify**: `./vendor/bin/phpunit`
+
 ---
 
-## 6. Step 5 — Adopt PHP 8 Features
+## 5. Phase 4 — Switch to Match Conversions
 
-### 6.1 String Functions (PHP 8.0)
+Convert eligible `switch` statements (return-value switches without side effects) to `match` expressions.
 
-Replace `strpos`/`substr` patterns with native PHP 8 functions:
+| File | Method | Line |
+|------|--------|------|
+| `src/Db/Driver.php` | `createConnection()` | ~73 |
+| `src/Http/Request.php` | `getParametersByMethod()` | ~128 |
+| `src/Storage/StorageFactory.php` | `init()` | ~26 |
+| `src/Libs/Image/GD.php` | `imageCreateFromType()` | ~81 |
+| `src/Libs/Image/GD.php` | `outputImageByType()` | ~108 |
 
-| Old Pattern | New Function |
-|-------------|-------------|
-| `strpos($haystack, $needle) !== false` | `str_contains($haystack, $needle)` |
-| `strpos($haystack, $needle) === 0` | `str_starts_with($haystack, $needle)` |
-| `substr($str, -strlen($suffix)) === $suffix` | `str_ends_with($str, $suffix)` |
-
-### 6.2 Constructor Promotion (PHP 8.0)
-
-Simplify constructors across all classes:
+Example:
 
 ```php
 // BEFORE
-class Router {
-    protected string $prefix;
-    protected array $routes;
+switch ($this->driver) {
+    case 'mysql':
+        return new MySQL(...);
+    default:
+        throw new DatabaseException(...);
+    break;
+}
 
-    public function __construct(string $prefix, array $routes = []) {
-        $this->prefix = $prefix;
-        $this->routes = $routes;
+// AFTER
+return match ($this->driver) {
+    'mysql' => new MySQL(...),
+    default => throw new DatabaseException(...),
+};
+```
+
+**Skip**: `Database.php::buildQuery()` and `Database.php::parseConditions()` — multi-statement cases with side effects, not suitable for `match`.
+
+**Verify**: `./vendor/bin/phpunit`
+
+---
+
+## 6. Phase 5 — Constructor Promotion
+
+Simplify constructors using PHP 8.0 promoted properties where parameters are directly assigned.
+
+**Best candidates** (simple assign-from-parameter):
+
+| File | Properties |
+|------|-----------|
+| `src/Db/Driver.php` | `$driver`, `$host`, `$user`, `$password`, `$database`, `$port` |
+| `src/Template/Template.php` | `$templates`, `$data` |
+| `src/Storage/StorageFactory.php` | `$storageConfig` |
+| `src/Storage/LocalService.php` | `$path` |
+| `src/File/File.php` | `$type` (partial — `$storage` is computed) |
+
+**Skip**: `Database.php`, `Server.php`, `MySQL.php` — constructors have computed/fallback logic (`?? env(...)` patterns) that prevent clean promotion.
+
+Example:
+
+```php
+// BEFORE (Driver.php)
+class Driver {
+    protected $driver;
+    protected $host;
+    // ... 4 more properties
+
+    public function __construct($driver, $host, ...) {
+        $this->driver = $driver;
+        $this->host = $host;
+        // ...
     }
 }
 
 // AFTER
-class Router {
+class Driver {
     public function __construct(
-        protected string $prefix,
-        protected array $routes = [],
+        protected ?string $driver = null,
+        protected ?string $host = null,
+        protected ?string $user = null,
+        protected ?string $password = null,
+        protected ?string $database = null,
+        protected ?string $port = null,
     ) {}
 }
 ```
 
-### 6.3 Readonly Properties (PHP 8.1) / Readonly Classes (PHP 8.2)
-
-Use `readonly` for immutable data:
-
-```php
-// Value objects, configuration, request data
-readonly class DatabaseConfig {
-    public function __construct(
-        public string $host,
-        public int $port,
-        public string $database,
-    ) {}
-}
-```
-
-### 6.4 Match Expressions (PHP 8.0)
-
-Replace simple switch statements:
-
-```php
-// BEFORE
-switch ($method) {
-    case 'GET':    return $this->handleGet(); break;
-    case 'POST':   return $this->handlePost(); break;
-    default:       throw new Exception('...');
-}
-
-// AFTER
-return match ($method) {
-    'GET'  => $this->handleGet(),
-    'POST' => $this->handlePost(),
-    default => throw new Exception('...'),
-};
-```
-
-### 6.5 Nullsafe Operator (PHP 8.0)
-
-```php
-// BEFORE
-$value = $request->getSession() ? $request->getSession()->get('key') : null;
-
-// AFTER
-$value = $request->getSession()?->get('key');
-```
-
-### 6.6 Union Types & Return Types (PHP 8.0)
-
-Add type declarations to all public methods:
-
-```php
-// BEFORE
-public function find($id) { ... }
-
-// AFTER
-public function find(int|string $id): ?Model { ... }
-```
-
-### 6.7 Enums (PHP 8.1)
-
-Consider converting constant groups to enums where appropriate:
-
-```php
-enum HttpMethod: string {
-    case GET = 'GET';
-    case POST = 'POST';
-    case PUT = 'PUT';
-    case DELETE = 'DELETE';
-}
-```
-
-### 6.8 Fibers (PHP 8.1)
-
-Not immediately applicable but worth noting for future async capabilities.
+**Verify**: `./vendor/bin/phpunit`
 
 ---
 
-## 7. Step 6 — Migrate Tests to PHPUnit 10
+## 7. Phase 6 — JWT Legacy Cleanup
 
-**Directory**: `test/`
+**File**: `src/Libs/JWT/JWT.php`
 
-### Key PHPUnit 10 Changes
+Remove PHP 5.x compatibility code that is dead on PHP 8.2:
 
-| PHPUnit 6 | PHPUnit 10 |
-|-----------|-----------|
-| `protected function setUp()` | `protected function setUp(): void` |
-| `protected function tearDown()` | `protected function tearDown(): void` |
-| `@test` annotation | `#[Test]` attribute |
-| `@dataProvider methodName` | `#[DataProvider('methodName')]` |
-| `assertContains($needle, $string)` | `assertStringContainsString($needle, $string)` |
-| `assertRegExp($pattern, $string)` | `assertMatchesRegularExpression($pattern, $string)` |
-| `expectException` before action | Same (no change) |
+| Location | Current | Fix |
+|----------|---------|-----|
+| `jsonDecode()` | `version_compare(PHP_VERSION, '5.4.0', '>=')` branch | Remove check, always use `JSON_BIGINT_AS_STRING` |
+| `verify()` | `if (function_exists('hash_equals'))` check | Remove check, `hash_equals` exists since PHP 5.6 |
+| `safeStrlen()` | `if (function_exists('mb_strlen'))` check | Remove check, `mb_strlen` is standard on PHP 8.2 |
+| Class comment | "PHP version 5" reference (line ~15) | Update to PHP 8.2 |
 
-### phpunit.xml Update
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="vendor/autoload.php"
-         colors="true">
-    <testsuites>
-        <testsuite name="Atom Test Suite">
-            <directory>test</directory>
-        </testsuite>
-    </testsuites>
-</phpunit>
-```
+**Verify**: `./vendor/bin/phpunit`
 
 ---
 
-## 8. Step 7 — Verification
+## 8. Phase 7 — Syntax Modernization & Return Types
 
-### Automated
+### 8.1 Convert `list()` to Array Destructuring
 
-1. `composer install` — verify all dependencies resolve
-2. `./vendor/bin/phpunit` — all tests pass
-3. `php -l src/**/*.php` — syntax check all source files
+~35 occurrences across these files:
+
+| File | Approx Count |
+|------|-------------|
+| `src/Db/Database.php` | ~12 |
+| `src/Db/PHPDataObjects.php` | ~3 |
+| `src/Libs/JWT/JWT.php` | ~3 |
+| `src/Libs/Image/GD.php` | ~4 |
+| `src/File/File.php` | ~3 |
+| `src/File/Image.php` | ~2 |
+| `src/Controllers/Controller.php` | ~3 |
+| `src/Guard/Auth.php` | ~1 |
+
+Each `list($a, $b) = ...` becomes `[$a, $b] = ...`
+
+### 8.2 Add Return Type Declarations
+
+Priority files (~150+ methods across the codebase):
+
+| File | Key Methods |
+|------|------------|
+| `src/Container/Container.php` | `set(): void`, `get(): mixed`, `resolve(): object`, `getDependencies(): array` |
+| `src/Db/Database.php` | Query builder methods → `static` (chaining), result methods → `array` |
+| `src/Http/Globals.php` | `path(): string`, `uri(): string`, `method(): string`, etc. |
+| `src/Http/Request.php` | `all(): array`, `headers(): array`, ArrayAccess methods |
+| `src/Http/Url.php` | `protocol(): string`, `signedUrl(): string`, `hasCorrectSignature(): bool` |
+| `src/Validation/Validator.php` | All rule methods → `string` |
+| `src/File/File.php` | `name(): string`, `size(): string`, `metadata(): array` |
+| `src/Libs/JWT/JWT.php` | `encode(): string`, `decode(): object`, `sign(): string`, `verify(): bool` |
+
+**Verify**: `./vendor/bin/phpunit`
+
+---
+
+## 9. Phase 8 — Typed Class Properties
+
+Add type declarations to class properties:
+
+| File | Key Properties |
+|------|---------------|
+| `src/Container/Container.php` | `protected array $instances = []` |
+| `src/Db/Database.php` | `protected ?string $driver`, `protected string $conditions = ""`, `protected array $where = []` |
+| `src/Db/MySQL.php` | `protected \mysqli $mysqli` |
+| `src/Db/PHPDataObjects.php` | `protected array $params = []`, `protected array $where = []` |
+| `src/Http/Request.php` | `public array $request`, `public string $uri`, `public string $method` |
+| `src/Validation/Validator.php` | `static array $errors = []`, `static array $inputRules = []` |
+| `src/Template/Template.php` | `protected array $templates`, `protected array $data` |
+| `src/File/File.php` | `public ?array $file`, `public ?string $type` |
+
+**Verify**: `./vendor/bin/phpunit`
+
+---
+
+## 10. Phase 9 — Optional PHP 8.2 Features
+
+Low priority, can be done later:
+
+- **Readonly properties** for immutable data (e.g., `Url::$key`)
+- **Named arguments** in long parameter lists
+- **`#[Test]` attributes** in test files (PHPUnit 10 still supports `test` prefix)
+- **Enums** for HTTP methods, database drivers, etc.
+- **Nullsafe operator** where null-check chains exist
+
+---
+
+## 11. Verification
+
+### After Each Phase
+
+1. `./vendor/bin/phpunit` — all tests pass
+2. `php -l` syntax check on changed files
+
+### Final Verification
+
+1. `composer install` from clean state — all dependencies resolve
+2. `./vendor/bin/phpunit` — full test suite green
+3. Audit for remaining:
+   - `func_get_args` / `func_num_args` usage
+   - `ReflectionParameter::getClass()` calls
+   - Loose `==` comparisons on mixed types
+   - `strpos` truthy checks
 
 ### Manual Smoke Tests
 
+- [ ] Container: dependency injection resolves classes correctly
 - [ ] Routing: GET/POST/PUT/DELETE routes resolve correctly
 - [ ] Validation: all rule types validate correctly
 - [ ] Database: CRUD operations, joins, transactions
 - [ ] JWT: token generation and verification
 - [ ] CSV: file export and download
-- [ ] Container: dependency injection resolves classes
 - [ ] Middleware: request pipeline functions
 
 ---
 
-## 9. Drawbacks & Risks
+## 12. Drawbacks & Risks
 
 | Risk | Impact | Severity | Mitigation |
 |------|--------|----------|------------|
 | **Drops PHP 7.x / 8.0 / 8.1 support** | Users must upgrade to PHP 8.2+ | Medium | PHP 8.2 is current stable; document requirement |
 | **Breaking API changes** | Method signatures change for Validator and Database classes | High | Tag as major version (v3.0); provide migration guide |
-| **Large refactor scope** | `func_get_args()` removal touches ~30 methods | Medium | Refactor incrementally; test each method after change |
-| **PHPUnit 10 migration** | Test code needs rewriting | Low | Well-documented migration; mostly mechanical changes |
+| **Large refactor scope** | `func_get_args()` removal touches ~21 methods | Medium | Refactor incrementally; test after each phase |
+| **PHPUnit 10 migration** | Minor config and assertion changes | Low | Most already done; only `verbose` removal and minor fixes remain |
+| **ReflectionUnionType edge case** | Container may fail on union-typed constructor params | Low | Guard with `instanceof ReflectionNamedType` check |
 | **Third-party compatibility** | Projects depending on Atom may break | Medium | Provide changelog and upgrade guide |
 
 ---
 
-## 10. Benefits
+## 13. Benefits
 
 | Benefit | Details |
 |---------|---------|
 | **Performance** | PHP 8.2 is ~20-30% faster than PHP 7 (JIT compiler, optimizations) |
 | **Type Safety** | Union types, intersection types, `null`, `false`, `true` standalone types catch bugs early |
-| **Security** | Active security support until Dec 2026 (PHP 7 is EOL with no patches) |
-| **Modern Syntax** | Cleaner, more readable code with match, nullsafe, readonly, enums |
+| **Security** | Active security support until Dec 2026 (PHP 7 is EOL with no patches); timing-safe signature comparison |
+| **Modern Syntax** | Cleaner, more readable code with match, nullsafe, readonly, constructor promotion |
 | **IDE Support** | Better autocompletion, refactoring, and static analysis with typed code |
 | **Ecosystem** | Access to latest packages that require PHP 8+ |
 
 ---
 
-## 11. References
+## 14. References
 
 - [PHP 8.0 Migration Guide](https://www.php.net/manual/en/migration80.php)
 - [PHP 8.1 Migration Guide](https://www.php.net/manual/en/migration81.php)

@@ -7,16 +7,9 @@ use Atom\Storage\Exception\StorageException;
 
 class LocalService implements StorageInterface
 {
-    public $storage;
-
-    /**
-     * Local Storage Service
-     * @param string $path
-     */
-    public function __construct(string $path)
-    {
-        $this->storage = $path;
-    }
+    public function __construct(
+        public string $storage,
+    ) {}
 
     /**
      * Upload file

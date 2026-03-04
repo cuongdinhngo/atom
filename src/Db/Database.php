@@ -9,65 +9,35 @@ use Atom\File\Log;
 
 class Database implements DatabaseInterface
 {
-    /**
-     * Database Driver
-     * @var string
-     */
-    protected $driver;
-
-    /**
-     * Database Host
-     * @var string
-     */
-    protected $host;
-
-    /**
-     * Database User
-     * @var string
-     */
-    protected $user;
-
-    /**
-     * User password
-     * @var string
-     */
-    protected $password;
-
-    /**
-     * Database Name
-     * @var string
-     */
-    protected $database;
-
-    /**
-     * Database Port
-     * @var string
-     */
-    protected $port;
-
-    protected static $con = [];
-    protected $db;
-    protected $table;
-    protected $result;
-    protected $query;
-    protected $selectCols;
-    protected $limit;
-    protected $offset;
-    protected $fillable;
-    protected $insertKeys;
-    protected $insertValues;
-    protected $enableQueryLog = false;
-    protected $queryLog = [];
-    protected $whereOperators = ['=', '!=', '<>', '>', '>=', '<', '<=', 'like', 'LIKE'];
-    protected $conditions = "";
-    protected $groupBy;
-    protected $having;
-    protected $orderBy;
-    protected $updateValues;
-    protected $innerJoin;
-    protected $leftJoin;
-    protected $rightJoin;
-    protected $where = [];
+    protected ?string $driver = null;
+    protected ?string $host = null;
+    protected ?string $user = null;
+    protected ?string $password = null;
+    protected ?string $database = null;
+    protected ?string $port = null;
+    protected static array $con = [];
+    protected mixed $db = null;
+    protected ?string $table = null;
+    protected mixed $result = null;
+    protected ?string $query = null;
+    protected ?string $selectCols = null;
+    protected ?int $limit = null;
+    protected ?int $offset = null;
+    protected ?array $fillable = null;
+    protected ?string $insertKeys = null;
+    protected ?string $insertValues = null;
+    protected bool $enableQueryLog = false;
+    protected array $queryLog = [];
+    protected array $whereOperators = ['=', '!=', '<>', '>', '>=', '<', '<=', 'like', 'LIKE'];
+    protected string $conditions = "";
+    protected ?string $groupBy = null;
+    protected ?string $having = null;
+    protected ?string $orderBy = null;
+    protected ?string $updateValues = null;
+    protected ?string $innerJoin = null;
+    protected ?string $leftJoin = null;
+    protected ?string $rightJoin = null;
+    protected array $where = [];
 
     const QUERY_SELECT = "SELECT";
     const QUERY_INSERT = "INSERT";
@@ -226,7 +196,7 @@ class Database implements DatabaseInterface
     {
         $values = [];
         foreach ($data as $key => $value) {
-            list($key, $value) = $this->parseRawValue($key, $value);
+            [$key, $value] = $this->parseRawValue($key, $value);
             $values[] = "`{$key}`" .' = '.$value;
         }
         $this->updateValues = implode(' , ', $values);
@@ -310,12 +280,8 @@ class Database implements DatabaseInterface
      * INNER JOIN
      * @return $this
      */
-    public function innerJoin()
+    public function innerJoin(string $joinTable, string $tableCond, string $joinCond)
     {
-        if (func_num_args() != 3) {
-            throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
-        }
-        list($joinTable, $tableCond, $joinCond) = func_get_args();
         $this->innerJoin = " INNER JOIN {$this->escape($joinTable)} ON {$this->escape($tableCond)} = {$this->escape($joinCond)}";
         return $this;
     }
@@ -324,12 +290,8 @@ class Database implements DatabaseInterface
      * LEFT JOIN
      * @return $this
      */
-    public function leftJoin()
+    public function leftJoin(string $joinTable, string $tableCond, string $joinCond)
     {
-        if (func_num_args() != 3) {
-            throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
-        }
-        list($joinTable, $tableCond, $joinCond) = func_get_args();
         $this->leftJoin = " LEFT JOIN {$this->escape($joinTable)} ON {$this->escape($tableCond)} = {$this->escape($joinCond)}";
         return $this;
     }
@@ -338,12 +300,8 @@ class Database implements DatabaseInterface
      * RIGHT JOIN
      * @return $this
      */
-    public function rightJoin()
+    public function rightJoin(string $joinTable, string $tableCond, string $joinCond)
     {
-        if (func_num_args() != 3) {
-            throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
-        }
-        list($joinTable, $tableCond, $joinCond) = func_get_args();
         $this->rightJoin = " RIGHT JOIN {$this->escape($joinTable)} ON {$this->escape($tableCond)} = {$this->escape($joinCond)}";
         return $this;
     }
@@ -382,13 +340,13 @@ class Database implements DatabaseInterface
                 throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
                 break;
             case 2:
-                list($key, $value) = $condition;
-                list($key, $escapeValue) = $this->parseRawValue($key, $value);
+                [$key, $value] = $condition;
+                [$key, $escapeValue] = $this->parseRawValue($key, $value);
                 return "{$this->escape($key)}" . ' = ' . $escapeValue;
                 break;
             case 3:
-                list($key, $operator, $value) = $condition;
-                list($key, $escapeValue) = $this->parseRawValue($key, $value);
+                [$key, $operator, $value] = $condition;
+                [$key, $escapeValue] = $this->parseRawValue($key, $value);
                 $operator = strtoupper($operator);
                 return !in_array($operator, $this->whereOperators) ?: "{$this->escape($key)}" . " {$this->escape($operator)} " . $escapeValue;
                 break;
@@ -411,16 +369,15 @@ class Database implements DatabaseInterface
      * Set OR where condition
      * @return $this;
      */
-    public function orWhere()
+    public function orWhere(array $conditions)
     {
-        if (!is_array(func_get_args()[0]) || empty(func_get_args()[0])) {
+        if (empty($conditions)) {
             throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
         }
 
-        $this->conditions .= " OR ".$this->parseConditions(func_get_args()[0]);
+        $this->conditions .= " OR ".$this->parseConditions($conditions);
 
         return $this;
-
     }
 
     /**
@@ -429,7 +386,7 @@ class Database implements DatabaseInterface
      */
     public function whereBetween(...$params)
     {
-        list($key, $values) = $this->parseWhereCondition($params);
+        [$key, $values] = $this->parseWhereCondition($params);
         $this->conditions .= " AND " . "{$this->escape($key)} BETWEEN " . implode(' AND ', $values);
 
         return $this;
@@ -441,7 +398,7 @@ class Database implements DatabaseInterface
      */
     public function whereNotBetween(...$params)
     {
-        list($key, $values) = $this->parseWhereCondition($params);
+        [$key, $values] = $this->parseWhereCondition($params);
         $this->conditions .= " AND " . "{$this->escape($key)} NOT BETWEEN " . implode(' AND ', $values);
 
         return $this;
@@ -475,7 +432,7 @@ class Database implements DatabaseInterface
      */
     public function parseWhereCondition($condition)
     {
-        list($key, $values) = $condition;
+        [$key, $values] = $condition;
         if (count($condition) != 2 || !is_array($values)) {
             throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
         }
@@ -493,7 +450,7 @@ class Database implements DatabaseInterface
      */
     public function whereIn(...$params)
     {
-        list($key, $values) = $this->parseWhereCondition($params);
+        [$key, $values] = $this->parseWhereCondition($params);
         $this->conditions .= " AND " . "{$this->escape($key)} IN (" . implode(', ', $values) . ")";
 
         return $this;
@@ -506,7 +463,7 @@ class Database implements DatabaseInterface
      */
     public function whereNotIn(...$params)
     {
-        list($key, $values) = $this->parseWhereCondition($params);
+        [$key, $values] = $this->parseWhereCondition($params);
         $this->conditions .= " AND " . "{$this->escape($key)} NOT IN (" . implode(', ', $values) . ")";
 
         return $this;
@@ -646,10 +603,9 @@ class Database implements DatabaseInterface
      * Set HAVING
      * @return $this
      */
-    public function having()
+    public function having(string $key, string $operator, string|int|float $value)
     {
-        list($key, $operator, $value) = func_get_args();
-        if (func_num_args() != 3 || !in_array($operator, ['>', '=', '<'])) {
+        if (!in_array($operator, ['>', '=', '<'])) {
             throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
         }
 
@@ -664,10 +620,9 @@ class Database implements DatabaseInterface
      * Set ORDER BY
      * @return $this
      */
-    public function orderBy()
+    public function orderBy(string $key, string $sort)
     {
-        list($key, $sort) = func_get_args();
-        if (func_num_args() != 2 || !in_array(strtoupper($sort), ['ASC', 'DESC'])) {
+        if (!in_array(strtoupper($sort), ['ASC', 'DESC'])) {
             throw new DatabaseException(DatabaseException::ERR_MSG_INVALID_ARGUMENTS);
         }
 

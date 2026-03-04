@@ -57,7 +57,7 @@ class Controller
     public function loadController($routeData)
     {
         try {
-            list($class, $method) = $this->dispatchController($routeData);
+            [$class, $method] = $this->dispatchController($routeData);
             $this->controller = $this->init($class);
             $this->controller->callMethod($method);
         } catch (\Exception $e) {
@@ -72,7 +72,7 @@ class Controller
      */
     public function init(string $class)
     {
-        list($file, $class) = $this->parseController($class);
+        [$file, $class] = $this->parseController($class);
 
         require_once($file);
 
@@ -129,7 +129,7 @@ class Controller
     public function dispatchController($routeData)
     {
         $actions = array_column($routeData, strtolower($this->requestMethod));
-        list($class, $function) = explode('@', $actions[0]);
+        [$class, $function] = explode('@', $actions[0]);
         if (empty($class)) {
             throw new ControllerException(ControllerException::ERR_MSG_INVALID_CONTROLLER);
         }

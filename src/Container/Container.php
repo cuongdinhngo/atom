@@ -3,14 +3,12 @@
 namespace Atom\Container;
 
 use ReflectionClass;
+use ReflectionNamedType;
 use Atom\Container\Exception\ContainerException;
 
 class Container
 {
-    /**
-     * @var array
-     */
-    protected $instances = [];
+    protected array $instances = [];
 
     /**
      * @param      $abstract
@@ -89,19 +87,15 @@ class Container
     {
         $dependencies = [];
         foreach ($parameters as $parameter) {
-            // get the type hinted class
-            $dependency = $parameter->getClass();
-            if ($dependency === NULL) {
-                // check if default value for a parameter is available
+            $type = $parameter->getType();
+            if ($type === null || !$type instanceof ReflectionNamedType || $type->isBuiltin()) {
                 if ($parameter->isDefaultValueAvailable()) {
-                    // get default value of parameter
                     $dependencies[] = $parameter->getDefaultValue();
                 } else {
                     throw new ContainerException(vsprintf(ContainerException::ERR_MSG_DEPENDENCY_NOT_RESOLVE, [$parameter->name]));
                 }
             } else {
-                // get dependency resolved
-                $dependencies[] = $this->get($dependency->name);
+                $dependencies[] = $this->get($type->getName());
             }
         }
 

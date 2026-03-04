@@ -288,7 +288,7 @@ class DatabaseTest extends TestCase
 
     public function testInnerJoinThrowsOnWrongArgCount()
     {
-        $this->expectException(DatabaseException::class);
+        $this->expectException(\ArgumentCountError::class);
         $this->db->table('users')->innerJoin('orders', 'users.id');
     }
 
